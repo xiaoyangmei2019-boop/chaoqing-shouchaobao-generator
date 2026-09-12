@@ -1,38 +1,59 @@
-# 超清手抄报/主题画快速生成
+# 异步图片任务后台
 
-这是“超清手抄报/主题画快速生成”开发测试版的私有源码仓库。
+该服务解决“上游已经生图并扣费，但浏览器长连接中断后收不到图片”的问题。
 
-## 文件说明
+网页只向本服务提交一次任务。本服务立即返回任务 ID，随后在服务器后台调用
+`vip.aittco.com`，把成功图片保存 24 小时。网页断网、刷新或重新打开后，可以继续查询同一任务。
 
-- `index.html`：可直接用浏览器打开，也可以直接部署到静态网站服务器。
-- `src/`：按功能拆分的可维护 JavaScript 源码。
-- `scripts/build.mjs`：把 `src/` 中的模块重新合并到单文件 `index.html`。
+## 运行要求
 
-## 本地使用
-
-直接双击 `index.html`，在浏览器中打开即可。首次使用时由用户在设置中填写自己的客户密钥，密钥只保存在该浏览器本机，不包含在仓库代码中。
-
-## 修改和构建
-
-需要 Node.js 18 或更高版本，不需要安装第三方依赖。
+- Node.js 14.17.6 或更高版本
+- 首次部署需要在 `server` 目录执行 `pnpm install --prod`，安装已经锁定的 Node 14 兼容依赖
+- HTTPS 网站；不要直接将 3366 端口暴露到公网
+- Nginx 将 `/api/image-tasks/` 反向代理到 `127.0.0.1:3366`
 
 ```bash
-node scripts/build.mjs
+cd server
+pnpm install --prod
+pnpm test
+pnpm start
 ```
 
-修改功能时，应优先修改 `src/` 中对应的模块，然后运行上面的构建命令更新 `index.html`。
+项目已避免使用 Node 18/20 才提供的全局 `fetch`、`FormData`、`Blob`、
+`Request` 以及 `Readable.toWeb()`，可以直接在 Node.js 14.17.6 中运行。
+依赖版本已固定，不要直接升级到要求更高 Node.js 版本的新版依赖。
 
-## 部署更新
+可用环境变量：
 
-服务器首次部署时克隆本仓库，网站根目录指向仓库目录或复制 `index.html` 到网站目录。以后每次更新代码后，服务器执行：
+- `PORT=3366`
+- `HOST=127.0.0.1`
+- `FRONTEND_ORIGIN=https://xym.aittco.com`
+- `UPSTREAM_IMAGE_BASE=https://vip.aittco.com/v1`
+- `UPSTREAM_IMAGE_MODEL=gpt-image-2`（正式版本默认值）
 
-```bash
-git pull origin main
+如需单独测试 2.5 模型，可在测试服务中设置
+`UPSTREAM_IMAGE_MODEL=gpt-image-2.5-sunburst`；不要修改正式服务的默认值。
+- `IMAGE_TASK_DATA_DIR=/var/lib/chaoqing-image-tasks`
+- `TASK_RETENTION_MS=86400000`
+- `MAX_ACTIVE_PER_IP=4`
+- `MAX_ACTIVE_TOTAL=12`
+- `MAX_UPLOAD_BYTES=67108864`
+
+Nginx 示例：
+
+```nginx
+location /api/image-tasks/ {
+    proxy_pass http://127.0.0.1:3366;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_connect_timeout 30s;
+    proxy_send_timeout 900s;
+    proxy_read_timeout 900s;
+    client_max_body_size 64m;
+}
 ```
 
-即可拉取最新版本。私有仓库需要在服务器上配置只读 Deploy Key 或其他 GitHub 身份验证方式。
-
-## 安全说明
-
-- 仓库不保存客户密钥、生成记录、生成图片或本机缓存。
-- 固定提示词仍会存在于前端代码中。即使仓库是私有的，只要把纯前端网页发给客户，懂技术的人仍可能查看代码；彻底隐藏固定提示词需要以后把提示词和接口调用迁移到服务端。
+生产环境建议使用 systemd 或进程管理器保持服务运行，并把数据目录放在持久磁盘。
+客户密钥只存在于当前任务的服务器内存中，不会写入任务文件或日志。
