@@ -1,9 +1,11 @@
-import assert from 'node:assert/strict';
+import assert from 'node:assert';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
 import { createAsyncImageServer } from './server.mjs';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
@@ -45,10 +47,10 @@ for (let i = 0; i < 80; i++) {
   await new Promise(resolve => setTimeout(resolve, 25));
 }
 assert.equal(status.status, 'succeeded'); assert.equal(status.points, 3); assert.equal(status.upstreamRequestId, 'mock-upstream-request');
-assert.deepEqual(Buffer.from(await (await fetch(`http://127.0.0.1:${app.server.address().port}${status.resultUrl}`)).arrayBuffer()), png);
+assert.deepEqual(await (await fetch(`http://127.0.0.1:${app.server.address().port}${status.resultUrl}`)).buffer(), png);
 assert.equal(upstreamPosts, 1, 'duplicate browser submission makes one billed upstream POST');
 
-const form = new FormData(); form.append('prompt', '提取线稿'); form.append('size', '1024x1024'); form.append('image', new Blob([png], { type: 'image/png' }), 'source.png');
+const form = new FormData(); form.append('prompt', '提取线稿'); form.append('size', '1024x1024'); form.append('image', png, { filename: 'source.png', contentType: 'image/png', knownLength: png.length });
 const edit = await (await fetch(base + '/edits', { method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID() }, body: form })).json();
 for (let i = 0; i < 80; i++) {
   status = await (await fetch(base + '/' + edit.id)).json();

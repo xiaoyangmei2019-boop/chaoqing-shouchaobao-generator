@@ -4,7 +4,10 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
+import Busboy from 'busboy';
+import AbortController from 'abort-controller';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -55,14 +58,32 @@ async function readJson(req, limit) {
 async function requestFormData(req, limit) {
   const length = Number(req.headers['content-length'] || 0);
   if (length > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
-  const request = new Request(requestOrigin(req) + req.url, {
-    method: req.method,
-    headers: req.headers,
-    body: Readable.toWeb(req),
-    duplex: 'half'
+  const chunks = []; let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
+    chunks.push(chunk);
+  }
+  // Node 14 has no global Request/FormData and no Readable.toWeb(). Parse the
+  // already size-bounded multipart body with Busboy, then forward fresh form
+  // data with the Node 14 compatible form-data package.
+  return await new Promise((resolve, reject) => {
+    let parser;
+    try { parser = Busboy({ headers: req.headers, limits: { files: 10, fields: 50, fileSize: limit } }); }
+    catch { reject(Object.assign(new Error('图片表单格式无效'), { statusCode: 400 })); return; }
+    const fields = new Map(), files = []; let parseError = null;
+    parser.on('field', (name, value) => fields.set(name, value));
+    parser.on('file', (name, stream, info) => {
+      const parts = [];
+      stream.on('data', chunk => parts.push(chunk));
+      stream.on('limit', () => { parseError = Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 }); });
+      stream.on('end', () => files.push({ name, buffer: Buffer.concat(parts), filename: info.filename || 'image.png', mimeType: info.mimeType || 'application/octet-stream' }));
+    });
+    parser.on('filesLimit', () => { parseError = Object.assign(new Error('图片数量不能超过10张'), { statusCode: 400 }); });
+    parser.on('error', () => reject(Object.assign(new Error('图片表单格式无效'), { statusCode: 400 })));
+    parser.on('finish', () => parseError ? reject(parseError) : resolve({ fields, files }));
+    parser.end(Buffer.concat(chunks));
   });
-  try { return await request.formData(); }
-  catch { throw Object.assign(new Error('图片表单格式无效'), { statusCode: 400 }); }
 }
 function publicTask(task) {
   return {
@@ -122,7 +143,7 @@ export async function createAsyncImageServer(options = {}) {
       try {
         const response = await fetch(url, { redirect: 'follow' });
         if (!response.ok) throw new Error(`图片下载HTTP ${response.status}`);
-        const buffer = Buffer.from(await response.arrayBuffer());
+        const buffer = await response.buffer();
         if (!buffer.length) throw new Error('图片下载结果为空');
         return { buffer, contentType: response.headers.get('content-type') || '' };
       } catch (error) { last = error; await sleep(800 * (attempt + 1)); }
@@ -134,7 +155,7 @@ export async function createAsyncImageServer(options = {}) {
     const type = String(response.headers.get('content-type') || '').toLowerCase();
     if (type.startsWith('image/')) {
       if (!response.ok) throw new Error(`上游返回HTTP ${response.status}`);
-      return { buffer: Buffer.from(await response.arrayBuffer()), contentType: type };
+      return { buffer: await response.buffer(), contentType: type };
     }
     const text = await response.text();
     let data = null;
@@ -158,7 +179,7 @@ export async function createAsyncImageServer(options = {}) {
     try {
       const response = await fetch(upstreamBase + (task.type === 'generation' ? '/images/generations' : '/images/edits'), {
         method: 'POST',
-        headers: task.type === 'generation' ? { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } : { Authorization: `Bearer ${apiKey}` },
+        headers: task.type === 'generation' ? { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } : { ...request.getHeaders(), Authorization: `Bearer ${apiKey}` },
         body: task.type === 'generation' ? JSON.stringify(request) : request,
         signal: controller.signal
       });
@@ -217,18 +238,18 @@ export async function createAsyncImageServer(options = {}) {
         };
       } else {
         const incoming = await requestFormData(req, maxUploadBytes), outgoing = new FormData();
-        const prompt = String(incoming.get('prompt') || '').trim();
+        const prompt = String(incoming.fields.get('prompt') || '').trim();
         if (!prompt) return sendJson(res, 400, { error: '图片修改提示词不能为空' });
         outgoing.append('model', upstreamModel); outgoing.append('prompt', prompt.slice(0, 100000));
-        outgoing.append('size', String(incoming.get('size') || '2416x3424'));
-        const aspectRatio = String(incoming.get('aspect_ratio') || '');
+        outgoing.append('size', String(incoming.fields.get('size') || '2416x3424'));
+        const aspectRatio = String(incoming.fields.get('aspect_ratio') || '');
         if (['12:17','17:12'].includes(aspectRatio)) { outgoing.append('image_size', '4k'); outgoing.append('aspect_ratio', aspectRatio); }
         outgoing.append('quality', 'high'); outgoing.append('output_format', 'png'); outgoing.append('n', '1'); outgoing.append('response_format', 'b64_json');
         let images = 0;
-        for (const [name, value] of incoming.entries()) {
-          if (!['image','image[]'].includes(name) || typeof value === 'string') continue;
-          if (!String(value.type || '').startsWith('image/')) return sendJson(res, 400, { error: '只允许上传图片文件' });
-          outgoing.append(name, value, value.name || `image-${images + 1}.png`); images++;
+        for (const file of incoming.files) {
+          if (!['image','image[]'].includes(file.name)) continue;
+          if (!String(file.mimeType || '').startsWith('image/')) return sendJson(res, 400, { error: '只允许上传图片文件' });
+          outgoing.append(file.name, file.buffer, { filename: file.filename || `image-${images + 1}.png`, contentType: file.mimeType, knownLength: file.buffer.length }); images++;
         }
         if (!images || images > 10) return sendJson(res, 400, { error: '图片数量必须为1至10张' });
         upstreamRequest = outgoing;
