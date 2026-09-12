@@ -10,7 +10,7 @@ const GalleryStore = (() => {
   const done = tx => new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error || new Error('浏览器缓存写入失败')); tx.onerror = () => {}; });
   const serial = fn => { const result = writes.then(fn); writes = result.catch(() => {}); return result; };
   function summary(item) {
-    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','editInstruction','failureType','failureTitle','error','assetId','assetIds','attempt'];
+    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','editInstruction','failureType','failureTitle','error','assetId','assetIds','attempt','pendingType','pendingTitle','clientRequestId','serverTaskId'];
     const meta = {};
     for (const key of keys) if (item[key] !== undefined) meta[key] = item[key];
     meta.id = String(meta.id);
@@ -34,7 +34,7 @@ const GalleryStore = (() => {
     if (snapshot) {
       const source = snapshot.source ? { ...summary(snapshot.source), assetId: asset(snapshot.source, 'source:' + item.id) } : null;
       const references = (snapshot.references || []).map((ref, i) => ({ name: ref.name || '参考图', assetId: asset(ref, 'reference:' + item.id + ':' + i) }));
-      snapshot = { id: meta.id, type: snapshot.type, params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '' };
+      snapshot = { id: meta.id, type: snapshot.type, params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
     }
     meta.assetIds = [...ids];
     return { meta, assets: [...assets.values()], snapshot };

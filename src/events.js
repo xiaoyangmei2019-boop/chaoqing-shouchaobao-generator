@@ -35,7 +35,7 @@ els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remov
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
 $('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
-$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '客户密钥已保存，正在校验额度' : '客户密钥已清除'); refreshQuota({ silent: !apiKey }); };
+$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '客户密钥已保存，正在校验额度' : '客户密钥已清除'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
 $('refreshQuota').onclick = () => refreshQuota();
 $('contextMenu').onclick = async e => {
   const action = e.target.closest('button')?.dataset.action, item = contextItem;
@@ -43,7 +43,11 @@ $('contextMenu').onclick = async e => {
   closeContextMenu();
   try {
     if (action === 'download') await download(item);
-    else if (action === 'regenerate') item.kind === 'failed' ? await retryFailedTask(item) : restoreItem(item);
+    else if (action === 'regenerate') {
+      if (item.kind === 'failed') await retryFailedTask(item);
+      else if (item.kind === 'edit') await reopenCompletedEdit(item);
+      else restoreItem(item);
+    }
     else if (action === 'reference') toggleGalleryReference(item);
     else if (action === 'edit') await openImageEditor(item);
     else if (action === 'preview') await previewImage(item);
@@ -80,5 +84,5 @@ window.addEventListener('beforeunload', e => { saveParams(); if (activeJobs > 0)
 window.addEventListener('pagehide', e => { saveParams(); if (!e.persisted) { ImageURLs.clear(); ImageWork.close(); GalleryStore.close(); } });
 loadParams(); fillSettings(); renderLogs(); renderThemeHistory();
 galleryReady = renderGallery();
-galleryReady.catch(error => toast('图片缓存暂不可用：' + error.message));
+galleryReady.then(() => resumePendingTasks()).catch(error => toast('图片缓存暂不可用：' + error.message));
 refreshQuota({ silent: true });
