@@ -7,14 +7,21 @@
 
 ## 运行要求
 
-- Node.js 20 或更高版本
+- Node.js 14.17.6 或更高版本
+- 首次部署需要在 `server` 目录执行 `pnpm install --prod`，安装已经锁定的 Node 14 兼容依赖
 - HTTPS 网站；不要直接将 3366 端口暴露到公网
 - Nginx 将 `/api/image-tasks/` 反向代理到 `127.0.0.1:3366`
 
 ```bash
 cd server
-npm start
+pnpm install --prod
+pnpm test
+pnpm start
 ```
+
+项目已避免使用 Node 18/20 才提供的全局 `fetch`、`FormData`、`Blob`、
+`Request` 以及 `Readable.toWeb()`，可以直接在 Node.js 14.17.6 中运行。
+依赖版本已固定，不要直接升级到要求更高 Node.js 版本的新版依赖。
 
 可用环境变量：
 
