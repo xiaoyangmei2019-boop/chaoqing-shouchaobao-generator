@@ -56,6 +56,7 @@ const GalleryStore = (() => {
       });
       connection = db;
       db.onversionchange = () => { db.close(); connection = null; ready = null; };
+      db.onclose = () => { connection = null; ready = null; };
       const keys = await request(db.transaction(STORE).objectStore(STORE).getAllKeys());
       for (const key of keys) {
         const tx = db.transaction([STORE, ...stores], 'readwrite'), completion = done(tx);
@@ -77,9 +78,20 @@ const GalleryStore = (() => {
     })().catch(error => { ready = null; connection?.close(); connection = null; throw error; });
     return ready;
   }
-  async function get(name, id) { const db = await open(); return request(db.transaction(name).objectStore(name).get(String(id))); }
+  // IndexedDB 连接可能因页面刷新、多标签页升级或 close() 被关闭。对只读
+  // 操作做一次自动重试（重置连接后重新打开），避免把「连接关闭」误报成任务失败。
+  const isClosedError = error => /connection is closing|InvalidState/i.test(String(error?.message || error?.name || ''));
+  async function retryOnce(fn) {
+    try { return await fn(); }
+    catch (error) {
+      if (!isClosedError(error)) throw error;
+      connection = null; ready = null;
+      return await fn();
+    }
+  }
+  async function get(name, id) { return retryOnce(async () => { const db = await open(); return request(db.transaction(name).objectStore(name).get(String(id))); }); }
   async function list() {
-    const db = await open(), records = await request(db.transaction(RECORDS).objectStore(RECORDS).getAll());
+    const records = await retryOnce(async () => { const db = await open(); return request(db.transaction(RECORDS).objectStore(RECORDS).getAll()); });
     const combined = new Map(records.map(x => [x.id, x]));
     for (const [id, data] of transient) combined.set(id, data.meta);
     return [...combined.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, MAX_IMAGES);
@@ -115,13 +127,15 @@ const GalleryStore = (() => {
     return serial(async () => {
       let evicted = [];
       try {
-        const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
-        for (const a of data.assets) tx.objectStore(ASSETS).put(a);
-        if (thumbnail) tx.objectStore(PREVIEWS).put({ id: data.meta.assetId, blob: thumbnail.blob, width: thumbnail.width, height: thumbnail.height });
-        tx.objectStore(RECORDS).put(data.meta);
-        if (data.snapshot) tx.objectStore(RETRIES).put(data.snapshot); else tx.objectStore(RETRIES).delete(data.meta.id);
-        prune(tx, ids => { evicted = ids; });
-        await completion;
+        await retryOnce(async () => {
+          const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
+          for (const a of data.assets) tx.objectStore(ASSETS).put(a);
+          if (thumbnail) tx.objectStore(PREVIEWS).put({ id: data.meta.assetId, blob: thumbnail.blob, width: thumbnail.width, height: thumbnail.height });
+          tx.objectStore(RECORDS).put(data.meta);
+          if (data.snapshot) tx.objectStore(RETRIES).put(data.snapshot); else tx.objectStore(RETRIES).delete(data.meta.id);
+          prune(tx, ids => { evicted = ids; });
+          await completion;
+        });
         transient.delete(data.meta.id);
         return { item: data.meta, cached: true, evicted };
       } catch (error) {
@@ -141,10 +155,12 @@ const GalleryStore = (() => {
   async function remove(id) {
     return serial(async () => {
       id = String(id);
-      const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
-      tx.objectStore(RECORDS).delete(id); tx.objectStore(RETRIES).delete(id);
-      prune(tx, () => {});
-      await completion;
+      await retryOnce(async () => {
+        const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
+        tx.objectStore(RECORDS).delete(id); tx.objectStore(RETRIES).delete(id);
+        prune(tx, () => {});
+        await completion;
+      });
       transient.delete(id); collectTransientAssets();
     });
   }
@@ -166,11 +182,13 @@ const GalleryStore = (() => {
       const blob = await original(id), thumb = await ImageWork.run({ type: 'thumbnail', blob });
       if (temp) temp.thumbnail = thumb;
       else await serial(async () => {
-        const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
-        // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
-        const q = tx.objectStore(ASSETS).getKey(id);
-        q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, blob: thumb.blob, width: thumb.width, height: thumb.height }); };
-        await completion;
+        await retryOnce(async () => {
+          const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
+          // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
+          const q = tx.objectStore(ASSETS).getKey(id);
+          q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, blob: thumb.blob, width: thumb.width, height: thumb.height }); };
+          await completion;
+        });
       }).catch(error => console.warn('预览缓存保存失败', error));
       return thumb.blob;
     })();

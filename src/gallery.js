@@ -35,6 +35,7 @@ function bindCardActions(card, item) {
   let tapStart = null, suppressClickUntil = 0;
   card.addEventListener('contextmenu', e => {
     e.preventDefault();
+    setHighlight(card);
     openContextMenu(e.clientX, e.clientY, item, mobileActionMode());
   });
   card.addEventListener('pointerdown', e => {
@@ -48,7 +49,12 @@ function bindCardActions(card, item) {
     if (moved > 10 || e.target.closest('button')) return;
     e.preventDefault(); e.stopPropagation();
     suppressClickUntil = Date.now() + 700;
-    openContextMenu(e.clientX, e.clientY, item, true);
+    if (contextItem) {
+      closeContextMenu();
+    } else {
+      setHighlight(card);
+      openContextMenu(e.clientX, e.clientY, item, true);
+    }
   });
   card.addEventListener('pointercancel', () => { tapStart = null; });
   card.addEventListener('click', e => {
@@ -141,14 +147,32 @@ function loadingCard(orientation, label = '正在绘制插画', aspectRatio = nu
   card.querySelector('.image-box').style.setProperty('aspect-ratio', String(taskAspect(orientation, aspectRatio)), 'important');
   placeCard(card, replacing); return card;
 }
+function createImportCard() {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.id = 'importCard';
+  card.className = 'import-card';
+  card.title = '点击导入本地图片';
+  card.innerHTML = '<div class="import-card-inner"><span class="import-icon">＋</span><span>导入图片</span></div>';
+  card.onclick = () => $('importImageInput').click();
+  return card;
+}
 function showEmptyIfNeeded() {
-  if (!els.gallery.querySelector('.card')) els.gallery.innerHTML = '<div class="empty"><div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div>';
+  if (els.gallery.querySelector('.card')) {
+    els.gallery.querySelector('.empty')?.remove();
+  } else if (!els.gallery.querySelector('.empty')) {
+    const div = document.createElement('div');
+    div.className = 'empty';
+    div.innerHTML = '<div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div>';
+    els.gallery.append(div);
+  }
 }
 async function renderGallery() {
   const all = await GalleryStore.list(), fragment = document.createDocumentFragment();
   for (const card of galleryCards.values()) disposeCard(card);
   galleryCards.clear(); galleryReferenceItems.clear();
   for (const item of all) fragment.append(item.kind === 'failed' ? createFailedCard(item) : item.kind === 'pending' ? createPendingCard(item) : createCompletedCard(item));
+  fragment.append(createImportCard());
   els.gallery.replaceChildren(fragment);
   for (const id of [...galleryReferenceIds]) if (!galleryReferenceItems.has(id)) galleryReferenceIds.delete(id);
   saveGalleryReferenceIds(); renderReferenceList(); showEmptyIfNeeded();
@@ -163,11 +187,19 @@ async function deleteImageItem(item) {
     toast(item.kind === 'failed' ? '失败记录已删除' : item.kind === 'pending' ? '本地任务记录已删除；服务器后台任务不会取消' : '图片已从右侧历史删除');
   } catch (error) { toast(error.message || '删除失败'); }
 }
+let highlightedCard = null;
+function setHighlight(card) {
+  if (highlightedCard === card) return;
+  if (highlightedCard) highlightedCard.classList.remove('menu-selected');
+  highlightedCard = card;
+  if (card) card.classList.add('menu-selected');
+}
 function closeContextMenu() {
   const menu = $('contextMenu');
   menu.classList.remove('open', 'mobile-sheet');
   menu.style.removeProperty('left'); menu.style.removeProperty('top');
   contextItem = null;
+  setHighlight(null);
 }
 function openContextMenu(x, y, item, mobile = mobileActionMode()) {
   contextItem = item;

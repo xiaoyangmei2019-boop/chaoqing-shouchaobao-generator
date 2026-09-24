@@ -10,13 +10,6 @@ async function transformImage(job) {
       const scale = Math.min(1, 640 / Math.max(width, height));
       width = Math.max(1, Math.round(width * scale));
       height = Math.max(1, Math.round(height * scale));
-    } else if (job.type === 'normalize') {
-      if (job.exact) { width = job.dimensions.width; height = job.dimensions.height; }
-      else {
-        const ratio = job.dimensions.width / job.dimensions.height;
-        if (ratio >= 1) height = Math.max(1, Math.round(width / ratio));
-        else width = Math.max(1, Math.round(height * ratio));
-      }
     }
     canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
     canvas.width = width; canvas.height = height;
@@ -79,7 +72,6 @@ const ImageWork = (() => {
   };
 })();
 function blobDimensions(blob) { return ImageWork.run({ type: 'dimensions', blob }); }
-function normalizeLineArtOutput(blob, dimensions, exact = false) { return ImageWork.run({ type: 'normalize', blob, dimensions, exact }); }
 
 // Object URLs belong to a visible image/preview, not to an entire gallery record.
 const ImageURLs = (() => {

@@ -30,6 +30,7 @@ function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.clas
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
 els.generate.onclick = () => generate().catch(error => toast(error.message));
 els.referenceInput.onchange = () => addUploadedReferences(els.referenceInput.files);
+$('importImageInput').onchange = () => { const files = $('importImageInput').files; importDroppedImages(files).catch(error => toast(error.message)); $('importImageInput').value = ''; };
 $('openSettings').onclick = () => openSettings(); $('closeSettings').onclick = () => els.modal.classList.remove('open');
 els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remove('open'); };
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
@@ -75,13 +76,16 @@ $('openHelp').onclick = () => $('supportModal').classList.add('open'); $('suppor
 $('supportModal').onclick = e => { if (e.target === $('supportModal')) $('supportModal').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { els.modal.classList.remove('open'); closePreview(); closeImageEditor(); closeContextMenu(); $('supportModal').classList.remove('open'); } });
 $('recentThemeList').onclick = e => { const button = e.target.closest('[data-theme-index]'); if (button) { const record = themeHistory()[Number(button.dataset.themeIndex)]; if (record) applyThemeRecord(record); } };
+function toggleRecentThemes() { const section = $('recentThemes'); const collapsed = section.classList.toggle('collapsed'); $('recentHead').setAttribute('aria-expanded', String(!collapsed)); }
+$('recentHead').onclick = toggleRecentThemes;
+$('recentHead').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRecentThemes(); } };
 const dropArea = document.querySelector('.gallery-wrap'); let dragDepth = 0;
 dropArea.addEventListener('dragenter', e => { if (!e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); dragDepth++; dropArea.classList.add('dragging'); });
 dropArea.addEventListener('dragover', e => { if (!e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
 dropArea.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropArea.classList.remove('dragging'); });
 dropArea.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; dropArea.classList.remove('dragging'); importDroppedImages(e.dataTransfer.files).catch(error => toast(error.message)); });
 window.addEventListener('beforeunload', e => { saveParams(); if (activeJobs > 0) { e.preventDefault(); e.returnValue = ''; } });
-window.addEventListener('pagehide', e => { saveParams(); if (!e.persisted) { ImageURLs.clear(); ImageWork.close(); GalleryStore.close(); } });
+window.addEventListener('pagehide', e => { saveParams(); if (!e.persisted) { ImageURLs.clear(); ImageWork.close(); } });
 loadParams(); fillSettings(); renderLogs(); renderThemeHistory();
 galleryReady = renderGallery();
 galleryReady.then(() => resumePendingTasks()).catch(error => toast('图片缓存暂不可用：' + error.message));

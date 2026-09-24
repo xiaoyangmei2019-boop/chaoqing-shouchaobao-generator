@@ -22,44 +22,41 @@ async function hydrateTask(task) {
   return hydrated;
 }
 async function requestTask(task, s, onServerTask = null) {
-  let response, sourceDimensions = null, outputDimensions = null, asyncPath = '', bodyFactory = null, asyncHeaders = {};
+  if (!s.taskApiBase) throw new Error('生图需要通过部署后的网站访问，请勿用本地文件直接打开');
+  const base = s.taskApiBase.replace(/\/$/, '');
+  // 恢复任务：已有 serverTaskId，直接查询原任务结果，绝不重新 POST（避免重复扣费）。
+  if (task.serverTaskId) {
+    const result = await pollAsyncImageTask(base, task.serverTaskId);
+    return { blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId };
+  }
+  let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
-    const payload = { model: s.model, prompt: buildPrompt(p), size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: 'png', moderation: 'auto', n: 1, response_format: 'b64_json' };
+    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: 'png', moderation: 'auto', n: 1, response_format: 'b64_json' };
     asyncPath = 'generations'; asyncHeaders = { 'Content-Type': 'application/json' }; bodyFactory = () => JSON.stringify(payload);
-    if (!s.taskApiBase) response = await fetchApi(s.apiBase.replace(/\/$/, '') + s.apiPath, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.apiKey }, body: JSON.stringify(payload) });
   } else {
-    let size, prompt, aspectRatio = '', imageParts = [];
+    let size, aspectRatio = '', imageParts = [], extraFields = [];
     if (task.type === 'reference') {
       const p = task.params;
       if (!task.references.length) throw new Error('原参考图缺失，无法按原任务重新生成');
-      size = PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4']; aspectRatio = PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4']; prompt = buildPrompt(p, true);
+      size = PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4']; aspectRatio = PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'];
       imageParts = task.references.map((ref, index) => ['image[]', ref.blob, 'reference-' + (index + 1) + '.' + referenceExtension(ref.blob)]);
+      extraFields = [['task_type', 'reference'], ['subject', p.subject || ''], ['age', p.age], ['person', p.person], ['titleMode', p.titleMode], ['smallText', p.smallText], ['textBoxes', p.textBoxes], ['titleText', p.titleText || '']];
     } else {
-      sourceDimensions = await blobDimensions(task.source.blob);
-      const requestSize = lineArtRequestSize(sourceDimensions);
-      size = requestSize.size;
-      outputDimensions = sourceDimensions;
-      prompt = task.type === 'lineart' ? LINE_ART_PROMPT : `请根据原图进行修改。严格保持原图的画面比例、整体构图和未要求修改的内容，只执行以下修改要求：\n${task.instruction}`;
+      const sourceDimensions = await blobDimensions(task.source.blob);
+      size = lineArtRequestSize(sourceDimensions).size;
       imageParts = [['image', task.source.blob, 'source.' + referenceExtension(task.source.blob)]];
+      extraFields = task.type === 'lineart' ? [['task_type', 'lineart']] : [['task_type', 'edit'], ['instruction', task.instruction || '']];
     }
-    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); form.append('model', s.model); form.append('prompt', prompt); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', 'png'); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
+    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', 'png'); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
     asyncPath = 'edits';
-    if (!s.taskApiBase) response = await fetchApi(s.apiBase.replace(/\/$/, '') + '/images/edits', { method: 'POST', headers: { Authorization: 'Bearer ' + s.apiKey }, body: bodyFactory() });
   }
-  if (s.taskApiBase) {
-    const submitted = await submitAsyncImageTask(s.taskApiBase.replace(/\/$/, ''), asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
-    task.serverTaskId = submitted.id;
-    if (onServerTask) await onServerTask(submitted.id);
-    let result = await pollAsyncImageTask(s.taskApiBase.replace(/\/$/, ''), submitted.id), blob = result.blob;
-    if (outputDimensions) blob = (await normalizeLineArtOutput(blob, outputDimensions)).blob;
-    return { blob, points: result.points || s.points, serverTaskId: submitted.id };
-  }
-  const data = await parseApiResponse(response);
-  if (!response.ok) throw new Error(data?.error?.message || data?.message || `生成失败（HTTP ${response.status}）`);
-  let blob = data.directBlob || await imageBlob(data);
-  if (outputDimensions) blob = (await normalizeLineArtOutput(blob, outputDimensions)).blob;
-  return { blob, points: Number(data?.points_used ?? data?.credits_used ?? s.points) || 0 };
+  const submitted = await submitAsyncImageTask(base, asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
+  task.serverTaskId = submitted.id;
+  if (onServerTask) await onServerTask(submitted.id);
+  // 保留模型返回原图，不做缩放补白，不改变构图。
+  const result = await pollAsyncImageTask(base, submitted.id);
+  return { blob: result.blob, points: result.points || s.points, serverTaskId: submitted.id };
 }
 async function runTask(spec, failedRecord = null) {
   if (!validKey()) return;
@@ -96,6 +93,32 @@ async function runTask(spec, failedRecord = null) {
     placeCard(createCompletedCard(saved.item), loading, saved.evicted);
     addLog({ time, subject: item.subject, size, quality: labels[2], points: output.points, success: true, taskId: id });
   } catch (error) {
+    if (output) {
+      // 任务已成功拿到结果，仅本地缓存/界面环节出错，不应误判为失败。
+      console.warn('任务成功，但本地结果处理出错', error);
+      const successItem = saved?.item || null;
+      if (successItem) {
+        try { placeCard(createCompletedCard(successItem), loading, saved.evicted); } catch (e) { console.warn('显示成功卡片失败', e); }
+      } else {
+        const item = { id, createdAt: Date.now(), time, subject: taskSubject(current), size, quality: 'high', state: current.params || current.source?.state || null, kind: current.type, sourceId: current.source?.id, editInstruction: current.instruction || '', blob: output.blob };
+        try {
+          const fallback = await GalleryStore.save(item, current.type === 'edit' ? current : null);
+          placeCard(createCompletedCard(fallback.item), loading, fallback.evicted);
+        } catch (e) { console.warn('结果保存失败', e); }
+      }
+      addLog({ time, subject: taskSubject(current), size, quality: labels[2], points: output.points, success: true, taskId: id });
+      try { await download({ id, createdAt: Date.now(), subject: taskSubject(current), size, blob: output.blob }); } catch (downloadError) { console.warn('自动下载也失败', downloadError); }
+      playTaskSound(true);
+      toast('图片已生成并下载，但浏览器本地记录保存失败');
+      return;
+    }
+    if (error?.uncertain && current.serverTaskId) {
+      // 任务已成功提交到服务器，仅查询阶段网络中断/超时。保持 pending，刷新后自动继续查询，不重复扣费。
+      const hint = loading.querySelector('small');
+      if (hint) hint.textContent = '查询暂时中断，可刷新页面继续查询，不会重复扣费';
+      toast('查询暂时中断，任务编号已保留，可刷新页面继续查询');
+      return;
+    }
     const reason = String(error?.message || '未知错误');
     const item = { id, createdAt: Date.now(), time, kind: 'failed', failureType: current.type, failureTitle: labels[1], error: reason, subject: taskSubject(current), size, aspectRatio, quality: '失败', state: current.params || current.source?.state || null, attempt: (failedRecord?.attempt || 0) + 1 };
     if (error?.uncertain) current.clientRequestId = current.clientRequestId || task.clientRequestId; else delete current.clientRequestId;
