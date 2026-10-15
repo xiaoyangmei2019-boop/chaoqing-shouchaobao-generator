@@ -106,6 +106,12 @@ function bearer(req) {
   const match = value.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
+function imageOutputOptions(value) {
+  const format = value == null ? 'png' : value;
+  if (!['png', 'jpeg'].includes(format)) throw badParam('图片格式只支持 PNG 或 JPG');
+  // Keep generation quality high; control only JPEG encoding quality.
+  return format === 'jpeg' ? { output_format: 'jpeg', output_compression: 95 } : { output_format: 'png' };
+}
 function detectImage(buffer, hinted = '') {
   if (buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return { mime: 'image/png', ext: 'png' };
   if (buffer[0] === 255 && buffer[1] === 216) return { mime: 'image/jpeg', ext: 'jpg' };
@@ -143,35 +149,138 @@ async function readJson(req, limit) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); }
   catch { throw Object.assign(new Error('JSON格式无效'), { statusCode: 400 }); }
 }
+function uploadFormError(message, retryable = false, statusCode = retryable ? 408 : 400) {
+  return Object.assign(new Error(message), { statusCode, retryable });
+}
+function multipartBoundary(contentType) {
+  const match = String(contentType || '').match(/boundary\s*=\s*(?:"([^"]+)"|([^;\s]+))/i);
+  return String(match?.[1] || match?.[2] || '');
+}
+function findMultipartDelimiter(body, delimiter, from = 0) {
+  let at = body.indexOf(delimiter, from);
+  while (at >= 0) {
+    const end = at + delimiter.length;
+    const lineStart = at === 0 || body[at - 1] === 10;
+    const closing = body[end] === 45 && body[end + 1] === 45;
+    const lineEnd = body[end] === 10 || (body[end] === 13 && body[end + 1] === 10);
+    const validClose = closing && /^[\r\n\t ]*$/.test(body.subarray(end + 2).toString('latin1'));
+    if (lineStart && (lineEnd || validClose)) return at;
+    at = body.indexOf(delimiter, at + 1);
+  }
+  return -1;
+}
+function multipartBodyComplete(body, boundary) {
+  if (!boundary || !body.length) return false;
+  const closing = Buffer.from(`--${boundary}--`);
+  const at = body.lastIndexOf(closing);
+  if (at < 0 || (at > 0 && body[at - 1] !== 10)) return false;
+  return /^[\r\n\t ]*$/.test(body.subarray(at + closing.length).toString('latin1'));
+}
+function dispositionValue(header, key) {
+  const quoted = header.match(new RegExp(`(?:^|;)\\s*${key}="([^"]*)"`, 'i'));
+  if (quoted) return quoted[1];
+  const plain = header.match(new RegExp(`(?:^|;)\\s*${key}=([^;\\s]+)`, 'i'));
+  return plain ? plain[1] : '';
+}
+// A small buffered fallback for complete multipart bodies. Some mobile WebViews
+// produce multipart headers that Busboy rejects even though the body and closing
+// boundary are intact. Incomplete uploads never enter this fallback: they are
+// reported as retryable before any model task has been created.
+function parseCompleteMultipartFallback(body, contentType, limit) {
+  const boundary = multipartBoundary(contentType);
+  if (!boundary || !multipartBodyComplete(body, boundary)) throw uploadFormError('图片上传不完整，请保持网络稳定后重试', true);
+  const delimiter = Buffer.from(`--${boundary}`), fields = new Map(), files = [];
+  let fieldCount = 0;
+  let cursor = findMultipartDelimiter(body, delimiter);
+  if (cursor < 0) throw uploadFormError('图片表单缺少分隔符');
+  cursor += delimiter.length;
+  while (cursor < body.length) {
+    if (body.subarray(cursor, cursor + 2).toString('latin1') === '--') break;
+    if (body[cursor] === 13 && body[cursor + 1] === 10) cursor += 2;
+    else if (body[cursor] === 10) cursor += 1;
+    const next = findMultipartDelimiter(body, delimiter, cursor);
+    if (next < 0) throw uploadFormError('图片上传不完整，请保持网络稳定后重试', true);
+    let end = next;
+    if (end >= 2 && body[end - 2] === 13 && body[end - 1] === 10) end -= 2;
+    else if (end >= 1 && body[end - 1] === 10) end -= 1;
+    // Accept CRLF/LF mixed header lines; stop at the first empty line.
+    const headerBlock = body.subarray(cursor, end).toString('latin1');
+    const separator = /\r?\n\r?\n/.exec(headerBlock);
+    const headerEnd = separator ? cursor + separator.index : -1;
+    const separatorLength = separator ? separator[0].length : 0;
+    if (headerEnd < 0) throw uploadFormError('图片表单字段头无效');
+    const headerText = body.subarray(cursor, headerEnd).toString('utf8');
+    const disposition = headerText.split(/\r?\n/).find(line => /^content-disposition:/i.test(line)) || '';
+    const name = dispositionValue(disposition, 'name');
+    if (!name) throw uploadFormError('图片表单字段名称无效');
+    const filename = dispositionValue(disposition, 'filename');
+    const content = body.subarray(headerEnd + separatorLength, end);
+    if (filename) {
+      if (files.length >= 10) throw uploadFormError('图片数量不能超过10张');
+      if (content.length > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
+      const typeLine = headerText.split(/\r?\n/).find(line => /^content-type:/i.test(line));
+      const mimeType = typeLine ? typeLine.slice(typeLine.indexOf(':') + 1).trim() : 'application/octet-stream';
+      files.push({ name, buffer: Buffer.from(content), filename, mimeType });
+    } else {
+      if (++fieldCount > 50) throw uploadFormError('图片表单字段过多');
+      if (content.length > 1024 * 1024) throw uploadFormError('图片表单字段超过限制');
+      fields.set(name, content.toString('utf8'));
+    }
+    cursor = next + delimiter.length;
+  }
+  return { fields, files };
+}
 async function requestFormData(req, limit) {
   const length = Number(req.headers['content-length'] || 0);
   if (length > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
   const chunks = []; let size = 0;
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
-    chunks.push(chunk);
+  try {
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > limit) throw Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 });
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    if (error?.statusCode === 413) throw error;
+    throw uploadFormError('图片上传连接中断，请保持网络稳定后重试', true);
   }
+  const body = Buffer.concat(chunks), contentType = String(req.headers['content-type'] || '');
+  const boundary = multipartBoundary(contentType);
+  if (!boundary) throw uploadFormError('图片表单缺少 multipart boundary');
+  if (!multipartBodyComplete(body, boundary)) throw uploadFormError('图片上传不完整，请保持网络稳定后重试', true);
   // Node 14 has no global Request/FormData and no Readable.toWeb(). Parse the
   // already size-bounded multipart body with Busboy, then forward fresh form
   // data with the Node 14 compatible form-data package.
-  return await new Promise((resolve, reject) => {
+  try { return await new Promise((resolve, reject) => {
     let parser;
     try { parser = Busboy({ headers: req.headers, limits: { files: 10, fields: 50, fileSize: limit } }); }
-    catch { reject(Object.assign(new Error('图片表单格式无效'), { statusCode: 400 })); return; }
+    catch (error) { reject(error); return; }
     const fields = new Map(), files = []; let parseError = null;
-    parser.on('field', (name, value) => fields.set(name, value));
+    parser.on('field', (name, value, info) => {
+      if (info.valueTruncated || info.nameTruncated) parseError = uploadFormError('图片表单字段超过限制');
+      fields.set(name, value);
+    });
     parser.on('file', (name, stream, info) => {
       const parts = [];
+      stream.on('error', reject);
       stream.on('data', chunk => parts.push(chunk));
       stream.on('limit', () => { parseError = Object.assign(new Error('上传图片总大小超过限制'), { statusCode: 413 }); });
       stream.on('end', () => files.push({ name, buffer: Buffer.concat(parts), filename: info.filename || 'image.png', mimeType: info.mimeType || 'application/octet-stream' }));
     });
+    parser.on('fieldsLimit', () => { parseError = uploadFormError('图片表单字段过多'); });
     parser.on('filesLimit', () => { parseError = Object.assign(new Error('图片数量不能超过10张'), { statusCode: 400 }); });
-    parser.on('error', () => reject(Object.assign(new Error('图片表单格式无效'), { statusCode: 400 })));
+    parser.on('error', reject);
     parser.on('finish', () => parseError ? reject(parseError) : resolve({ fields, files }));
-    parser.end(Buffer.concat(chunks));
-  });
+    parser.end(body);
+  }); }
+  catch (error) {
+    if (error?.statusCode) throw error;
+    try { return parseCompleteMultipartFallback(body, contentType, limit); }
+    catch (fallbackError) {
+      if (fallbackError?.statusCode) throw fallbackError;
+      throw uploadFormError(`图片表单格式无效：${safeMessage(error)}`);
+    }
+  }
 }
 function publicTask(task) {
   return {
@@ -326,7 +435,7 @@ export async function createAsyncImageServer(options = {}) {
           size: aspectRatio === '17:12' ? '3424x2416' : '2416x3424',
           image_size: '4k',
           aspect_ratio: aspectRatio,
-          quality: 'high', output_format: 'png', moderation: 'auto', n: 1, response_format: 'b64_json'
+          quality: 'high', ...imageOutputOptions(body.output_format), moderation: 'auto', n: 1, response_format: 'b64_json'
         };
       } else {
         const incoming = await requestFormData(req, maxUploadBytes), outgoing = new FormData();
@@ -357,7 +466,9 @@ export async function createAsyncImageServer(options = {}) {
         outgoing.append('size', validateSize(incoming.fields.get('size') || '2416x3424'));
         const aspectRatio = String(incoming.fields.get('aspect_ratio') || '');
         if (['12:17','17:12'].includes(aspectRatio)) { outgoing.append('image_size', '4k'); outgoing.append('aspect_ratio', aspectRatio); }
-        outgoing.append('quality', 'high'); outgoing.append('output_format', 'png'); outgoing.append('n', '1'); outgoing.append('response_format', 'b64_json');
+        outgoing.append('quality', 'high');
+        for (const [key, value] of Object.entries(imageOutputOptions(incoming.fields.get('output_format')))) outgoing.append(key, String(value));
+        outgoing.append('n', '1'); outgoing.append('response_format', 'b64_json');
         let images = 0;
         for (const file of incoming.files) {
           if (!['image','image[]'].includes(file.name)) continue;
@@ -416,7 +527,7 @@ export async function createAsyncImageServer(options = {}) {
         fs.createReadStream(file).pipe(res); return;
       }
       sendJson(res, 404, { error: '接口不存在' });
-    } catch (error) { sendJson(res, error?.statusCode || 500, { error: safeMessage(error) }); }
+    } catch (error) { sendJson(res, error?.statusCode || 500, { error: safeMessage(error), retryable: Boolean(error?.retryable) }); }
   });
   server.on('close', () => clearInterval(cleanupTimer));
   return { server, tasks, close: () => new Promise(resolve => server.close(resolve)) };

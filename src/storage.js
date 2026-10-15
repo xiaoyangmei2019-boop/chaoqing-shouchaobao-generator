@@ -10,9 +10,10 @@ const GalleryStore = (() => {
   const done = tx => new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error || new Error('浏览器缓存写入失败')); tx.onerror = () => {}; });
   const serial = fn => { const result = writes.then(fn); writes = result.catch(() => {}); return result; };
   function summary(item) {
-    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','editInstruction','failureType','failureTitle','error','assetId','assetIds','attempt','pendingType','pendingTitle','clientRequestId','serverTaskId'];
+    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','mimeType','editInstruction','failureType','failureTitle','errorType','error','assetId','assetIds','attempt','pendingType','pendingTitle','clientRequestId','serverTaskId'];
     const meta = {};
     for (const key of keys) if (item[key] !== undefined) meta[key] = item[key];
+    if (item.blob?.type) meta.mimeType = item.blob.type;
     meta.id = String(meta.id);
     meta.createdAt = Number(meta.createdAt) || Date.now();
     if (!meta.aspectRatio) meta.aspectRatio = item.width && item.height ? item.width / item.height : taskAspect(item.size);
@@ -34,10 +35,19 @@ const GalleryStore = (() => {
     if (snapshot) {
       const source = snapshot.source ? { ...summary(snapshot.source), assetId: asset(snapshot.source, 'source:' + item.id) } : null;
       const references = (snapshot.references || []).map((ref, i) => ({ name: ref.name || '参考图', assetId: asset(ref, 'reference:' + item.id + ':' + i) }));
-      snapshot = { id: meta.id, type: snapshot.type, params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
+      snapshot = { id: meta.id, type: snapshot.type, outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
     }
     meta.assetIds = [...ids];
     return { meta, assets: [...assets.values()], snapshot };
+  }
+  // 使用字节存储，减少移动浏览器持久化文件型 Blob 的兼容问题。
+  // 统一存为 ArrayBuffer + type，读取时重建 Blob。
+  async function encodeAssetBlob(blob) { return { buffer: await readImageBytes(blob), type: blob.type || '' }; }
+  function decodeAssetBlob(data) {
+    if (!data) return null;
+    if (data.blob) return data.blob; // 兼容旧数据（直接存 Blob）
+    if (data.buffer) return new Blob([data.buffer], { type: data.type || 'image/jpeg' });
+    return null;
   }
   function open() {
     if (ready) return ready;
@@ -127,10 +137,13 @@ const GalleryStore = (() => {
     return serial(async () => {
       let evicted = [];
       try {
+        // iOS Safari：入库前先把 Blob 转为 ArrayBuffer + type，避免读回时损坏
+        const encodedAssets = await Promise.all(data.assets.map(async a => ({ id: a.id, ...(await encodeAssetBlob(a.blob)) })));
+        const encodedThumb = thumbnail ? { id: data.meta.assetId, ...(await encodeAssetBlob(thumbnail.blob)), width: thumbnail.width, height: thumbnail.height } : null;
         await retryOnce(async () => {
           const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
-          for (const a of data.assets) tx.objectStore(ASSETS).put(a);
-          if (thumbnail) tx.objectStore(PREVIEWS).put({ id: data.meta.assetId, blob: thumbnail.blob, width: thumbnail.width, height: thumbnail.height });
+          for (const a of encodedAssets) tx.objectStore(ASSETS).put(a);
+          if (encodedThumb) tx.objectStore(PREVIEWS).put(encodedThumb);
           tx.objectStore(RECORDS).put(data.meta);
           if (data.snapshot) tx.objectStore(RETRIES).put(data.snapshot); else tx.objectStore(RETRIES).delete(data.meta.id);
           prune(tx, ids => { evicted = ids; });
@@ -144,7 +157,7 @@ const GalleryStore = (() => {
         for (const a of data.assets) transientAssets.set(a.id, { ...a, thumbnail });
         while (transient.size > MAX_IMAGES) transient.delete(transient.keys().next().value);
         collectTransientAssets();
-        return { item: data.meta, cached: false, evicted };
+        return { item: data.meta, cached: false, cacheError: error?.name === 'QuotaExceededError' ? 'quota' : 'unavailable', evicted };
       }
     });
   }
@@ -169,8 +182,9 @@ const GalleryStore = (() => {
     const id = typeof value === 'string' ? value : value?.assetId;
     if (!id) throw new Error('原图数据缺失');
     const a = transientAssets.get(id) || await get(ASSETS, id);
-    if (!a?.blob) throw new Error('原图已清理或无法读取');
-    return a.blob;
+    const blob = decodeAssetBlob(a);
+    if (!blob) throw new Error('原图已清理或无法读取');
+    return readableImageBlob(blob);
   }
   async function preview(id) {
     if (previewJobs.has(id)) return previewJobs.get(id);
@@ -178,18 +192,22 @@ const GalleryStore = (() => {
       const temp = transientAssets.get(id);
       if (temp?.thumbnail) return temp.thumbnail.blob;
       const existing = await get(PREVIEWS, id);
-      if (existing?.blob) return existing.blob;
+      const cached = decodeAssetBlob(existing);
+      if (cached) return cached;
       const blob = await original(id), thumb = await ImageWork.run({ type: 'thumbnail', blob });
       if (temp) temp.thumbnail = thumb;
-      else await serial(async () => {
-        await retryOnce(async () => {
-          const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
-          // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
-          const q = tx.objectStore(ASSETS).getKey(id);
-          q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, blob: thumb.blob, width: thumb.width, height: thumb.height }); };
-          await completion;
-        });
-      }).catch(error => console.warn('预览缓存保存失败', error));
+      else {
+        const encoded = await encodeAssetBlob(thumb.blob);
+        await serial(async () => {
+          await retryOnce(async () => {
+            const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
+            // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
+            const q = tx.objectStore(ASSETS).getKey(id);
+            q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, ...encoded, width: thumb.width, height: thumb.height }); };
+            await completion;
+          });
+        }).catch(error => console.warn('预览缓存保存失败', error));
+      }
       return thumb.blob;
     })();
     previewJobs.set(id, job);

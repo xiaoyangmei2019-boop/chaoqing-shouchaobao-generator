@@ -1,3 +1,7 @@
+function cacheFailureMessage(saved, record = '记录') {
+  const reason = saved.cacheError === 'quota' ? '浏览器存储空间不足' : '浏览器本地保存失败';
+  return reason + '，此' + record + '仅在当前页面临时保留';
+}
 // A shared task lifecycle keeps four entry points consistent and makes a future server adapter local.
 const runningTasks = new Map(), retryLocks = new Set(), localLocks = new Set();
 const newId = () => crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
@@ -29,10 +33,11 @@ async function requestTask(task, s, onServerTask = null) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
     return { blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId };
   }
+  const outputFormat = (task.outputFormat || s.outputFormat) === 'jpeg' ? 'jpeg' : 'png';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
-    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: 'png', moderation: 'auto', n: 1, response_format: 'b64_json' };
+    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
     asyncPath = 'generations'; asyncHeaders = { 'Content-Type': 'application/json' }; bodyFactory = () => JSON.stringify(payload);
   } else {
     let size, aspectRatio = '', imageParts = [], extraFields = [];
@@ -48,7 +53,7 @@ async function requestTask(task, s, onServerTask = null) {
       imageParts = [['image', task.source.blob, 'source.' + referenceExtension(task.source.blob)]];
       extraFields = task.type === 'lineart' ? [['task_type', 'lineart']] : [['task_type', 'edit'], ['instruction', task.instruction || '']];
     }
-    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', 'png'); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
+    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
     asyncPath = 'edits';
   }
   const submitted = await submitAsyncImageTask(base, asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
@@ -63,7 +68,7 @@ async function runTask(spec, failedRecord = null) {
   await galleryReady;
   const id = failedRecord?.id || newId();
   if (runningTasks.has(id)) return;
-  const task = { ...spec, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
+  const task = { ...spec, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
   const labels = TASK_LABELS[task.type];
   if (!labels) return toast('无法识别这个任务');
   const time = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -119,20 +124,23 @@ async function runTask(spec, failedRecord = null) {
       toast('查询暂时中断，任务编号已保留，可刷新页面继续查询');
       return;
     }
-    const reason = String(error?.message || '未知错误');
-    const item = { id, createdAt: Date.now(), time, kind: 'failed', failureType: current.type, failureTitle: labels[1], error: reason, subject: taskSubject(current), size, aspectRatio, quality: '失败', state: current.params || current.source?.state || null, attempt: (failedRecord?.attempt || 0) + 1 };
+    const rawReason = String(error?.message || '未知错误');
+    const classified = classifyError(rawReason);
+    const reason = classified.detail; // unknown 时即为原文
+    const failureTitle = classified.type === 'unknown' ? labels[1] : classified.title;
+    const item = { id, createdAt: Date.now(), time, kind: 'failed', failureType: current.type, failureTitle, errorType: classified.type, error: reason, subject: taskSubject(current), size, aspectRatio, quality: '失败', state: current.params || current.source?.state || null, attempt: (failedRecord?.attempt || 0) + 1 };
     if (error?.uncertain) current.clientRequestId = current.clientRequestId || task.clientRequestId; else delete current.clientRequestId;
     saved = await GalleryStore.save(item, current);
     placeCard(createFailedCard(saved.item), loading, saved.evicted);
     addLog({ time, subject: item.subject, size, quality: labels[2], points: 0, success: false, error: reason, taskId: id });
     playTaskSound(false);
-    toast(saved.cached ? reason : reason + '；浏览器缓存不足，此失败记录暂未保存');
+    toast(saved.cached ? reason : reason + '；' + cacheFailureMessage(saved, '失败记录'));
     return;
   } finally { releaseAssets(); runningTasks.delete(id); updateTaskCount(); }
   playTaskSound(true);
   // Download/cache problems must never resubmit a successful, already billed model task.
   await download({ ...saved.item, blob: output.blob });
-  toast(saved.cached ? '生成成功，图片已自动下载' : '图片已生成并下载，但浏览器缓存不足');
+  toast(saved.cached ? '生成成功，图片已自动下载' : '图片已生成并下载；' + cacheFailureMessage(saved));
 }
 async function resumePendingTasks() {
   if (!getSettings().taskApiBase || !getSettings().apiKey) return;
@@ -196,14 +204,15 @@ async function importDroppedImages(fileList) {
   const files = [...fileList].filter(f => /^image\/(png|jpeg|webp|gif)$/i.test(f.type));
   if (!files.length) return toast('请拖入 PNG、JPG、WebP 或 GIF 图片');
   await galleryReady;
-  let imported = 0;
+  let imported = 0, uncached = null, lastError = null;
   for (const file of files) {
     try {
       const time = new Date().toLocaleString('zh-CN', { hour12: false }), subject = file.name.replace(/\.[^.]+$/, '') || '导入图片';
       // save() measures the original while creating the thumbnail; no second full decode.
-      const saved = await GalleryStore.save({ id: newId(), createdAt: Date.now(), time, subject, quality: '本地导入', kind: 'import', blob: file });
+      const saved = await GalleryStore.save({ id: newId(), createdAt: Date.now(), time, subject, quality: '本地导入', kind: 'import', blob: await readableImageBlob(file) });
       placeCard(createCompletedCard(saved.item), null, saved.evicted); imported++;
-    } catch (error) { console.warn(error); }
+      if (!saved.cached) uncached = saved;
+    } catch (error) { lastError = error; console.warn(error); }
   }
-  toast(imported ? `已导入${imported}张图片，可右键使用图片功能` : '图片导入失败，请更换图片后重试');
+  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : '，点击或右键使用图片功能') : lastError?.message || '图片导入失败，请更换图片后重试');
 }

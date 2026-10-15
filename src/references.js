@@ -47,9 +47,10 @@ async function addUploadedReferences(fileList) {
   for (const file of files) {
     if (referenceTotal() >= MAX_REFERENCE_IMAGES) break;
     try {
-      const thumb = await ImageWork.run({ type: 'thumbnail', blob: file });
+      const blob = await readableImageBlob(file);
+      const thumb = await ImageWork.run({ type: 'thumbnail', blob });
       if (referenceTotal() >= MAX_REFERENCE_IMAGES) break;
-      const id = newId(); uploadedReferences.push({ id, assetId: 'upload:' + id, name: file.name || '上传参考图', blob: file, thumbnail: thumb.blob });
+      const id = newId(); uploadedReferences.push({ id, assetId: 'upload:' + id, name: file.name || '上传参考图', blob, thumbnail: thumb.blob });
       added++; renderReferenceList();
     } catch (error) { console.warn(error); }
   }

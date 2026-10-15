@@ -8,7 +8,7 @@
 <style>
 [hidden]{display:none!important}
 .image-box{aspect-ratio:12/17!important}.card.landscape .image-box{aspect-ratio:17/12!important}
-:root{--ink:#22302d;--muted:#72807c;--paper:#fffdf8;--canvas:#eaf0eb;--line:#dbe3dc;--green:#176b55;--green2:#0f5141;--coral:#e16c50;--gold:#e9b75e;--red:#b94444;--shadow:0 18px 50px rgba(36,55,47,.12)}*{box-sizing:border-box}html,body{margin:0;min-width:320px;min-height:100%;color:var(--ink);background:var(--canvas);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:grid;grid-template-columns:minmax(285px,1fr) minmax(700px,3fr);height:100vh;overflow:hidden}.sidebar{position:relative;z-index:2;overflow:auto;padding:24px 22px 28px;border-right:1px solid var(--line);background:var(--paper);box-shadow:8px 0 28px rgba(43,62,54,.06)}.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.brand-mark{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;color:#fff;background:var(--green);font:800 1.15rem Georgia,serif;box-shadow:0 8px 20px rgba(23,107,85,.22)}.brand-copy{flex:1}.eyebrow{margin:0 0 3px;color:var(--coral);font:800 .64rem Georgia,serif;letter-spacing:.13em}.brand h1{margin:0;font-size:1.22rem}.field{display:grid;gap:6px;margin-top:13px}.field>span,.label-row span{font-size:.79rem;font-weight:750;color:#52615d}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;outline:none;color:var(--ink);background:#fff}.field input,.field select{height:41px;padding:0 10px}.field textarea{min-height:132px;padding:11px;line-height:1.65;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#6ca28f;box-shadow:0 0 0 3px rgba(23,107,85,.1)}.label-row{display:flex;justify-content:space-between}.char-count{color:var(--muted)!important;font-weight:500!important}.reference-picker{margin-top:13px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#f8faf8}.reference-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.reference-head strong{font-size:.79rem;color:#52615d}.reference-head small{color:var(--green);font-size:.7rem;font-weight:700}.reference-upload{display:flex;align-items:center;justify-content:center;height:37px;border:1px dashed #88ad9e;border-radius:9px;color:var(--green);background:#fff;font-size:.76rem;font-weight:750;cursor:pointer;transition:.18s}.reference-upload:hover{border-color:var(--green);background:#f0f7f3}.reference-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.reference-empty{width:100%;margin:0;color:var(--muted);font-size:.7rem;line-height:1.55}.reference-thumb{position:relative;width:54px;height:54px;overflow:visible;border:2px solid #2aa66f;border-radius:9px;background:#e8efe9;box-shadow:0 4px 12px rgba(24,126,83,.12)}.reference-thumb img{display:block;width:100%;height:100%;border-radius:7px;object-fit:cover}.reference-remove{position:absolute;top:-7px;right:-7px;display:grid;place-items:center;width:19px;height:19px;padding:0;border:0;border-radius:50%;color:#fff;background:#263a33;font-size:14px;line-height:1;box-shadow:0 2px 7px rgba(0,0,0,.22)}.card.reference-selected{border-color:#20a76d;box-shadow:0 0 0 3px #20a76d,0 12px 32px rgba(29,137,91,.2)}.card.menu-selected{border-color:#378add;box-shadow:0 0 0 3px #378add,0 12px 32px rgba(24,95,165,.18)}.generate{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;margin-top:18px;border:0;border-radius:11px;color:#fff;background:var(--coral);font-weight:800;box-shadow:0 10px 22px rgba(225,108,80,.23);transition:.2s}.generate:hover{background:#cb5b43;transform:translateY(-1px)}.generate:disabled{cursor:not-allowed;opacity:.62;transform:none}.hint{margin:10px 2px 0;color:var(--muted);font-size:.72rem;line-height:1.55}.workspace{display:grid;grid-template-rows:auto 1fr;min-width:0;overflow:hidden;background:linear-gradient(rgba(29,66,54,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(29,66,54,.035) 1px,transparent 1px),#edf2ee;background-size:28px 28px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid rgba(211,222,214,.9);background:rgba(250,252,249,.86);backdrop-filter:blur(12px)}.topbar h2{margin:0;font-size:1.16rem}.topbar p{margin:3px 0 0;color:var(--muted);font-size:.78rem}.top-actions{display:flex;align-items:center;gap:9px}.badge{padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--green);background:#fff;font-size:.76rem;font-weight:700}.icon-btn{display:flex;align-items:center;gap:7px;height:39px;padding:0 13px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:#fff;font-weight:700}.icon-btn:hover{border-color:#96b8aa}.gallery-wrap{overflow:auto;padding:22px 24px 46px}.gallery{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));align-items:start;gap:16px}.import-card{display:grid;place-items:center;aspect-ratio:2/3;border:2px dashed var(--line);border-radius:14px;background:transparent;color:var(--muted);cursor:pointer;transition:border-color .2s ease,color .2s ease,background .2s ease;-webkit-tap-highlight-color:transparent}.import-card:hover,.import-card:focus-visible{border-color:#6ca28f;color:#0f6e56;background:rgba(108,162,143,.07)}.import-card-inner{display:grid;gap:10px;justify-items:center}.import-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px dashed currentColor;font-size:1.6rem;line-height:1}.empty{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 155px);text-align:center}.empty-inner{max-width:390px;padding:34px}.empty-icon{display:grid;place-items:center;width:72px;height:72px;margin:0 auto 18px;border-radius:24px;color:var(--green);background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);font-size:2rem}.empty h3{margin:0 0 8px;font-size:1.12rem}.empty p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.75}.card{overflow:hidden;border:1px solid rgba(255,255,255,.9);border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(40,59,51,.1)}.image-box{position:relative;display:grid;place-items:center;aspect-ratio:2/3;overflow:hidden;background:#dde7df}.image-box img{width:100%;height:100%;object-fit:cover}.card-body{padding:12px}.card-title{overflow:hidden;margin:0 0 5px;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem}.meta{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.7rem}.card-actions{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:10px}.card-actions button{height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--green);font-size:.75rem;font-weight:700}.card-actions .download{color:#fff;background:var(--green);border-color:var(--green)}.loading-card .image-box{background:linear-gradient(110deg,#dfe7e0 8%,#f4f7f4 18%,#dfe7e0 33%);background-size:200% 100%;animation:shine 1.4s linear infinite}.loading-center{text-align:center;color:#50635c}.spinner{width:32px;height:32px;margin:0 auto 12px;border:3px solid rgba(23,107,85,.18);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}.loading-center strong{display:block;font-size:.84rem}.loading-center small{display:block;margin-top:5px;color:var(--muted)}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shine{to{background-position-x:-200%}}.failed-card{border-color:#efc8c8;background:#fff9f9}.failed-card .image-box{padding:18px;background:linear-gradient(145deg,#fff6f6,#f8e7e7)}.failure-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:10px;text-align:center}.failure-graphic{width:66px;height:66px;margin-bottom:12px;filter:drop-shadow(0 7px 14px rgba(185,68,68,.16))}.failure-title{margin:0 0 8px;color:var(--red);font-size:.94rem}.failure-card-reason{max-width:100%;max-height:38%;overflow:auto;margin:0;color:#783f3f;font-size:.72rem;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap}.failure-dismiss{margin-top:13px;padding:6px 13px;border:1px solid #e5baba;border-radius:999px;color:#9b4a4a;background:#fff;font-size:.7rem;font-weight:700}.toast{position:fixed;right:22px;bottom:22px;z-index:20;max-width:380px;padding:12px 16px;border-radius:10px;color:#fff;background:#24342f;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:none}.modal-backdrop{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,31,27,.48);backdrop-filter:blur(5px)}.modal-backdrop.open{display:flex}.modal{display:grid;grid-template-rows:auto auto 1fr;width:min(900px,100%);max-height:min(760px,92vh);overflow:hidden;border-radius:16px;background:var(--paper);box-shadow:0 30px 90px rgba(0,0,0,.28)}.modal-head{display:flex;align-items:center;justify-content:space-between;padding:19px 22px;border-bottom:1px solid var(--line)}.modal-head h3{margin:0;font-size:1.1rem}.close{width:36px;height:36px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:1.2rem}.tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line)}.tab{padding:10px 14px;border:0;border-bottom:2px solid transparent;color:var(--muted);background:transparent;font-weight:700}.tab.active{color:var(--green);border-bottom-color:var(--green)}.tab-panel{display:none;overflow:auto;padding:20px 22px 24px}.tab-panel.active{display:block}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.settings-note{margin:0 0 15px;padding:11px 13px;border-radius:9px;color:#5c665c;background:#f1f5ef;font-size:.78rem;line-height:1.6}.secret-row{display:grid;grid-template-columns:1fr auto;gap:7px}.small-btn{border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 13px}.save-settings{height:43px;margin-top:18px;padding:0 19px;border:0;border-radius:9px;color:#fff;background:var(--green);font-weight:800}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:.76rem}th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}th{color:#586761;background:#f4f6f2}tbody tr:last-child td{border-bottom:0}.success{color:var(--green);font-weight:800}.failed{color:var(--red);font-weight:800}.log-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:var(--muted);font-size:.78rem}.danger-link{border:0;color:var(--red);background:transparent}.delete-card{width:34px!important;color:var(--red)!important}.status-dot{display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:#95a29d}.status-dot.ready{background:#45a47f}@media(max-width:1180px){.app{grid-template-columns:330px 1fr}.gallery{grid-template-columns:repeat(2,minmax(220px,1fr))}}@media(max-width:780px){.app{display:block;height:auto;overflow:visible}.sidebar{position:static;overflow:visible;border-right:0;border-bottom:1px solid var(--line)}.workspace{min-height:80vh}.gallery{grid-template-columns:repeat(2,minmax(150px,1fr))}.gallery-wrap{padding:15px}.topbar{padding:15px}.badge{display:none}.settings-grid{grid-template-columns:1fr}}@media(max-width:480px){.gallery{grid-template-columns:1fr}.topbar p{display:none}}
+:root{--ink:#22302d;--muted:#72807c;--paper:#fffdf8;--canvas:#eaf0eb;--line:#dbe3dc;--green:#176b55;--green2:#0f5141;--coral:#e16c50;--gold:#e9b75e;--red:#b94444;--shadow:0 18px 50px rgba(36,55,47,.12)}*{box-sizing:border-box}html,body{margin:0;min-width:320px;min-height:100%;color:var(--ink);background:var(--canvas);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:grid;grid-template-columns:minmax(285px,1fr) minmax(700px,3fr);height:100vh;overflow:hidden}.sidebar{position:relative;z-index:2;overflow:auto;padding:24px 22px 28px;border-right:1px solid var(--line);background:var(--paper);box-shadow:8px 0 28px rgba(43,62,54,.06)}.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.brand-mark{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;color:#fff;background:var(--green);font:800 1.15rem Georgia,serif;box-shadow:0 8px 20px rgba(23,107,85,.22)}.brand-copy{flex:1}.eyebrow{margin:0 0 3px;color:var(--coral);font:800 .64rem Georgia,serif;letter-spacing:.13em}.brand h1{margin:0;font-size:1.22rem}.field{display:grid;gap:6px;margin-top:13px}.field>span,.label-row span{font-size:.79rem;font-weight:750;color:#52615d}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;outline:none;color:var(--ink);background:#fff}.field input,.field select{height:41px;padding:0 10px}.field textarea{min-height:132px;padding:11px;line-height:1.65;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#6ca28f;box-shadow:0 0 0 3px rgba(23,107,85,.1)}.label-row{display:flex;justify-content:space-between}.char-count{color:var(--muted)!important;font-weight:500!important}.reference-picker{margin-top:13px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#f8faf8}.reference-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.reference-head strong{font-size:.79rem;color:#52615d}.reference-head small{color:var(--green);font-size:.7rem;font-weight:700}.reference-upload{display:flex;align-items:center;justify-content:center;height:37px;border:1px dashed #88ad9e;border-radius:9px;color:var(--green);background:#fff;font-size:.76rem;font-weight:750;cursor:pointer;transition:.18s}.reference-upload:hover{border-color:var(--green);background:#f0f7f3}.reference-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.reference-empty{width:100%;margin:0;color:var(--muted);font-size:.7rem;line-height:1.55}.reference-thumb{position:relative;width:54px;height:54px;overflow:visible;border:2px solid #2aa66f;border-radius:9px;background:#e8efe9;box-shadow:0 4px 12px rgba(24,126,83,.12)}.reference-thumb img{display:block;width:100%;height:100%;border-radius:7px;object-fit:cover}.reference-remove{position:absolute;top:-7px;right:-7px;display:grid;place-items:center;width:19px;height:19px;padding:0;border:0;border-radius:50%;color:#fff;background:#263a33;font-size:14px;line-height:1;box-shadow:0 2px 7px rgba(0,0,0,.22)}.card.reference-selected{border-color:#20a76d;box-shadow:0 0 0 3px #20a76d,0 12px 32px rgba(29,137,91,.2)}.card.menu-selected{border-color:#378add;box-shadow:0 0 0 3px #378add,0 12px 32px rgba(24,95,165,.18)}.generate{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;margin-top:18px;border:0;border-radius:11px;color:#fff;background:var(--coral);font-weight:800;box-shadow:0 10px 22px rgba(225,108,80,.23);transition:.2s}.generate:hover{background:#cb5b43;transform:translateY(-1px)}.generate:disabled{cursor:not-allowed;opacity:.62;transform:none}.hint{margin:10px 2px 0;color:var(--muted);font-size:.72rem;line-height:1.55}.workspace{display:grid;grid-template-rows:auto 1fr;min-width:0;overflow:hidden;background:linear-gradient(rgba(29,66,54,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(29,66,54,.035) 1px,transparent 1px),#edf2ee;background-size:28px 28px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid rgba(211,222,214,.9);background:rgba(250,252,249,.86);backdrop-filter:blur(12px)}.topbar h2{margin:0;font-size:1.16rem}.topbar p{margin:3px 0 0;color:var(--muted);font-size:.78rem}.top-actions{display:flex;align-items:center;gap:9px}.badge{padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--green);background:#fff;font-size:.76rem;font-weight:700}.icon-btn{display:flex;align-items:center;gap:7px;height:39px;padding:0 13px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:#fff;font-weight:700}.icon-btn:hover{border-color:#96b8aa}.gallery-wrap{overflow:auto;padding:22px 24px 46px}.gallery{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));align-items:start;gap:16px}.import-card{display:grid;place-items:center;aspect-ratio:2/3;border:2px dashed var(--line);border-radius:14px;background:transparent;color:var(--muted);cursor:pointer;transition:border-color .2s ease,color .2s ease,background .2s ease;-webkit-tap-highlight-color:transparent}.import-card:hover,.import-card:focus-visible{border-color:#6ca28f;color:#0f6e56;background:rgba(108,162,143,.07)}.import-card-inner{display:grid;gap:10px;justify-items:center}.import-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px dashed currentColor;font-size:1.6rem;line-height:1}.empty{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 155px);text-align:center}.empty-inner{max-width:390px;padding:34px}.empty-icon{display:grid;place-items:center;width:72px;height:72px;margin:0 auto 18px;border-radius:24px;color:var(--green);background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);font-size:2rem}.empty h3{margin:0 0 8px;font-size:1.12rem}.empty p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.75}.card{overflow:hidden;border:1px solid rgba(255,255,255,.9);border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(40,59,51,.1)}.image-box{position:relative;display:grid;place-items:center;aspect-ratio:2/3;overflow:hidden;background:#dde7df}.image-box img{width:100%;height:100%;object-fit:cover}.card-body{padding:12px}.card-title{overflow:hidden;margin:0 0 5px;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem}.meta{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.7rem}.card-actions{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:10px}.card-actions button{height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--green);font-size:.75rem;font-weight:700}.card-actions .download{color:#fff;background:var(--green);border-color:var(--green)}.loading-card .image-box{background:linear-gradient(110deg,#dfe7e0 8%,#f4f7f4 18%,#dfe7e0 33%);background-size:200% 100%;animation:shine 1.4s linear infinite}.loading-center{text-align:center;color:#50635c}.spinner{width:32px;height:32px;margin:0 auto 12px;border:3px solid rgba(23,107,85,.18);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}.loading-center strong{display:block;font-size:.84rem}.loading-center small{display:block;margin-top:5px;color:var(--muted)}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shine{to{background-position-x:-200%}}.failed-card{border-color:#efc8c8;background:#fff9f9}.failed-card.soft{border-color:#ecd9b0;background:#fffaf1}.failed-card.soft .image-box{background:linear-gradient(145deg,#fffaf1,#f6e8d0)}.failed-card.soft .failure-title{color:#8a6a1d}.failed-card.soft .failure-card-reason{color:#7a6226}.failed-card.soft .failure-dismiss{border-color:#e5d3a5;color:#8a6a1d}.failed-card .image-box{padding:18px;background:linear-gradient(145deg,#fff6f6,#f8e7e7)}.failure-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:10px;text-align:center}.failure-graphic{width:66px;height:66px;margin-bottom:12px;filter:drop-shadow(0 7px 14px rgba(185,68,68,.16))}.failure-title{margin:0 0 8px;color:var(--red);font-size:.94rem}.failure-card-reason{max-width:100%;max-height:38%;overflow:auto;margin:0;color:#783f3f;font-size:.72rem;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap}.failure-dismiss{margin-top:13px;padding:6px 13px;border:1px solid #e5baba;border-radius:999px;color:#9b4a4a;background:#fff;font-size:.7rem;font-weight:700}.toast{position:fixed;right:22px;bottom:22px;z-index:20;max-width:380px;padding:12px 16px;border-radius:10px;color:#fff;background:#24342f;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:none}.modal-backdrop{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,31,27,.48);backdrop-filter:blur(5px)}.modal-backdrop.open{display:flex}.modal{display:grid;grid-template-rows:auto auto 1fr;width:min(900px,100%);max-height:min(760px,92vh);overflow:hidden;border-radius:16px;background:var(--paper);box-shadow:0 30px 90px rgba(0,0,0,.28)}.modal-head{display:flex;align-items:center;justify-content:space-between;padding:19px 22px;border-bottom:1px solid var(--line)}.modal-head h3{margin:0;font-size:1.1rem}.close{width:36px;height:36px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:1.2rem}.tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line)}.tab{padding:10px 14px;border:0;border-bottom:2px solid transparent;color:var(--muted);background:transparent;font-weight:700}.tab.active{color:var(--green);border-bottom-color:var(--green)}.tab-panel{display:none;overflow:auto;padding:20px 22px 24px}.tab-panel.active{display:block}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.settings-note{margin:0 0 15px;padding:11px 13px;border-radius:9px;color:#5c665c;background:#f1f5ef;font-size:.78rem;line-height:1.6}.secret-row{display:grid;grid-template-columns:1fr auto;gap:7px}.small-btn{border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 13px}.save-settings{height:43px;margin-top:18px;padding:0 19px;border:0;border-radius:9px;color:#fff;background:var(--green);font-weight:800}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:.76rem}th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}th{color:#586761;background:#f4f6f2}tbody tr:last-child td{border-bottom:0}.success{color:var(--green);font-weight:800}.failed{color:var(--red);font-weight:800}.log-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:var(--muted);font-size:.78rem}.danger-link{border:0;color:var(--red);background:transparent}.delete-card{width:34px!important;color:var(--red)!important}.status-dot{display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:#95a29d}.status-dot.ready{background:#45a47f}@media(max-width:1180px){.app{grid-template-columns:330px 1fr}.gallery{grid-template-columns:repeat(2,minmax(220px,1fr))}}@media(max-width:780px){.app{display:block;height:auto;overflow:visible}.sidebar{position:static;overflow:visible;border-right:0;border-bottom:1px solid var(--line)}.workspace{min-height:80vh}.gallery{grid-template-columns:repeat(2,minmax(150px,1fr))}.gallery-wrap{padding:15px}.topbar{padding:15px}.badge{display:none}.settings-grid{grid-template-columns:1fr}}@media(max-width:480px){.gallery{grid-template-columns:1fr}.topbar p{display:none}}
 .brand-mark{display:block;width:43px;height:43px;flex:0 0 43px;border-radius:13px;object-fit:cover;background:none;box-shadow:0 8px 20px rgba(44,57,202,.25)}
 .image-edit-panel{display:grid;gap:7px;padding:9px;border-top:1px solid var(--line);background:#fff}.image-edit-panel textarea{width:100%;min-height:72px;padding:8px;border:1px solid var(--line);border-radius:7px;outline:none;resize:vertical;font-size:.75rem;line-height:1.5}.image-edit-panel textarea:focus{border-color:#6ca28f;box-shadow:0 0 0 2px rgba(23,107,85,.1)}.image-edit-actions{display:grid;grid-template-columns:1fr auto;gap:6px}.image-edit-actions button{height:32px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:.74rem;font-weight:700}.image-edit-actions .submit-edit{color:#fff;border-color:var(--green);background:var(--green)}.image-edit-actions button:disabled{cursor:not-allowed;opacity:.6}
 .gallery .card{transition:opacity .2s ease,transform .2s ease,box-shadow .2s ease}.gallery .card.removing{opacity:0;transform:scale(.9);box-shadow:none;pointer-events:none}
@@ -28,6 +28,58 @@
 </style>
 <style id="performance-style">.image-box img{object-fit:contain}.image-box img:not([src]){visibility:hidden}.card{contain:layout paint}.field.disabled-field>span{color:#8a9591}.field input:disabled{cursor:not-allowed;color:#8b9692;border-color:#e1e6e2;background:#f1f3f1;box-shadow:none;opacity:1}.failed-card .image-box{display:block}.failure-visual{min-height:0}.failure-card-reason{max-height:45%;flex:1;min-height:0}.failure-graphic{flex-shrink:1;min-height:20px}.failure-dismiss{flex-shrink:0}@media(prefers-reduced-motion:reduce){.card,.spinner,.loading-card .image-box{animation:none!important;transition:none!important}}</style>
 <style id="mobile-action-style">@media(max-width:780px),(hover:none),(pointer:coarse){.gallery .card:not(.loading-card){cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:pan-y}.context-menu.mobile-sheet{left:12px!important;right:12px!important;top:auto!important;bottom:max(12px,env(safe-area-inset-bottom))!important;width:auto;max-height:min(72vh,560px);overflow:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:12px;border-radius:18px;z-index:260;box-shadow:0 0 0 100vmax rgba(18,28,24,.28),0 18px 48px rgba(20,40,32,.28)}.context-menu.mobile-sheet button{min-width:0;height:46px;padding:0 10px;justify-content:center;border:1px solid #e2e9e4;border-radius:10px;background:#f8faf8;font-size:.84rem}.context-menu.mobile-sheet [data-action="delete"]{grid-column:1/-1;border-color:#f0cccc;background:#fff6f6}}</style>
+<style id="workbench-design">
+/* Approved workbench design. Built inline by scripts/build.mjs. */
+:root{--ink:#213d35;--muted:#5d6f68;--paper:#fff;--canvas:#f3f6f4;--line:#dce5df;--green:#176b55;--green2:#10513f;--coral:#176b55;--shadow:0 12px 30px rgba(26,61,45,.07)}
+html,body{background:var(--canvas);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{height:100dvh;grid-template-columns:360px minmax(0,1fr);max-width:1760px;margin:auto}
+.sidebar{padding:26px 26px 22px;background:#fff;box-shadow:none;border-color:var(--line)}
+.brand{align-items:center;gap:12px;margin-bottom:25px;padding-bottom:23px;border-bottom:1px solid var(--line)}
+.brand-mark{width:44px;height:44px;flex-basis:44px;border-radius:12px;box-shadow:none}
+.eyebrow{font-family:inherit;font-size:9px;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:5px}
+.brand h1{font-size:18px;line-height:1.5;letter-spacing:-.5px;max-width:230px}
+.grid2{gap:0 14px}.field{gap:8px;margin-top:15px}.grid2 .field:nth-child(-n+2){margin-top:0}
+.field>span,.label-row span,.reference-head strong{font-size:12px;font-weight:600;color:#40594e}
+.field input,.field select{height:44px;padding:0 12px;font-size:13px;border-radius:8px;background:#fbfcfb;border-color:#d6e0d9}
+.field textarea{min-height:112px;padding:12px;font-size:13px;line-height:1.8;border-radius:8px;background:#fbfcfb;border-color:#d6e0d9}
+.field input::placeholder,.field textarea::placeholder{color:#65766c}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px #176b5515;background:#fff}
+.help{width:15px;height:15px;font-size:10px;color:#65786d;border-color:#91a198}
+.reference-picker{margin-top:18px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#f6f9f7}
+.reference-head{margin-bottom:10px}.reference-upload{height:40px;font-size:12px;border-color:#91b3a4;border-radius:7px}.reference-list{margin-top:8px}.reference-empty{font-size:11px;color:var(--muted);line-height:1.65}
+.generate{height:48px;margin-top:18px;border-radius:8px;background:var(--green);font-size:14px;box-shadow:0 4px 10px #176b5514;font-weight:650}
+.generate:hover{background:var(--green2)}.generate:active{transform:scale(.99)}
+.hint{font-size:11px;line-height:1.75;color:var(--muted);margin-top:11px}.recent-themes{margin-top:20px;padding-top:17px}.recent-head strong{font-size:12px}.recent-head span{font-size:11px}
+.workspace{background:#f3f6f4}.topbar{padding:24px 30px;background:#f3f6f4;border:none;backdrop-filter:none;align-items:center;gap:24px}
+.topbar h2{font-size:22px;line-height:1.4;font-weight:650;letter-spacing:-.6px}.topbar p{font-size:12px;color:var(--muted);line-height:1.7;margin-top:5px;max-width:520px}
+.top-actions{gap:8px;flex-shrink:0}.icon-btn{height:38px;padding:0 13px;border-radius:8px;font-size:12px;font-weight:550;background:#fff}
+.gallery-wrap{padding:0 30px 36px}.gallery{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:20px 16px}
+.gallery .card{border:1px solid #e0e7e2;border-radius:10px;background:#fff;box-shadow:0 3px 7px rgba(24,56,40,.025);transition:border-color .15s,transform .15s}
+.gallery .card:hover{border-color:#88aa98;transform:translateY(-2px)}.image-box{background:#fff}.completed-card .image-box{margin:8px 8px 0;border-radius:5px}
+.card-body{display:block;padding:12px 12px 13px}.card-title{font-size:12px;line-height:1.6;font-weight:600;color:var(--ink);margin-bottom:7px}.meta{font-size:10px;color:var(--muted)}
+.import-card{aspect-ratio:auto;min-height:290px;height:100%;border:1px dashed #9fb7a9;border-radius:10px;background:#edf3ef;color:#526e5e;font-size:12px}.import-icon{border:1px solid #b7cbbd;border-radius:12px;background:#f9fcfa;width:40px;height:40px;font-size:24px;font-weight:300}
+.failed-card.soft{background:#fffdf8}.failed-card.soft .image-box{background:#fff8e9;padding:16px}.failure-visual{padding:0;gap:12px}.failure-title{font-size:14px;line-height:1.6;margin:0}.failure-card-reason{font-size:12px;line-height:1.8;flex:0 1 auto;max-height:none;color:#765917}.failure-dismiss{font-size:11px;border-radius:6px;padding:8px 10px;margin:0;min-height:36px}
+.modal{border-radius:14px;background:#fff;box-shadow:var(--shadow);max-width:760px}.modal-head{padding:20px 24px}.modal-head h3{font-size:17px}.tab-panel{padding:12px 24px 24px}.quota-message{font-size:12px;line-height:1.7;color:var(--muted)}.quota-panel{background:#f3f7f4;border-radius:10px}.settings-grid .field>span{font-size:13px}.save-settings{border-radius:8px;font-weight:600}.close{border-radius:8px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.card:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+@media(min-width:1600px){.gallery{grid-template-columns:repeat(auto-fill,minmax(195px,1fr))}}
+@media(max-width:1100px) and (min-width:781px){.app{grid-template-columns:320px minmax(0,1fr)}.sidebar{padding:22px 20px}.topbar{padding:22px;align-items:flex-start}.topbar p{max-width:250px}.gallery-wrap{padding:0 22px 30px}.gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card-title{font-size:11px}.import-card{min-height:200px}}
+@media(max-width:780px){.app{display:block;height:auto;min-height:100dvh}.sidebar{padding:22px 20px 20px;background:#fff}.brand{margin-bottom:20px;padding-bottom:19px;gap:12px}.brand h1{font-size:19px;max-width:260px}.brand-mark{width:44px;height:44px}.eyebrow{font-size:9px}.grid2{gap:0 14px}.field{margin-top:16px;gap:8px}.field>span,.label-row span,.reference-head strong{font-size:13px}.field input,.field select{font-size:16px;height:46px;padding:0 10px}.field textarea{font-size:16px;min-height:115px;line-height:1.75}.reference-picker{padding:12px;margin-top:18px}.reference-upload{height:44px;font-size:13px}.reference-empty{font-size:12px}.generate{height:50px;font-size:16px;margin-top:19px}.hint{font-size:12px}.recent-themes{margin-top:17px;padding-top:16px}.recent-head strong{font-size:13px}.recent-head span{font-size:11px}.workspace{min-height:600px}.topbar{padding:24px 20px 18px;gap:10px;flex-wrap:wrap}.topbar h2{font-size:21px}.topbar p{display:none}.icon-btn{height:40px;font-size:12px;padding:0 11px}.gallery-wrap{padding:0 20px 28px}.gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.card-body{padding:10px}.card-title{font-size:11px}.meta{font-size:10px}.completed-card .image-box{margin:6px 6px 0}.import-card{min-height:260px}.failure-title{font-size:14px}.failure-card-reason{font-size:12px}.modal-backdrop{padding:14px}.modal{max-height:92dvh}.tab-panel{padding:12px 18px 22px}.settings-grid .field input,.settings-grid .field select{font-size:14px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.failure-graphic{width:36px;height:36px;margin-bottom:0;filter:none;flex-shrink:0}
+
+/* Keep every gallery state usable, including small landscape error cards. */
+.gallery .card.reference-selected{border-color:#176b55;box-shadow:0 0 0 3px #176b55}
+.gallery .card.menu-selected{border-color:#176b55;box-shadow:0 0 0 3px #176b5580}
+.failed-card .image-box{min-height:240px;overflow:auto}
+.failure-visual{gap:10px}.failure-card-reason{flex:1 1 auto;min-height:0;overflow:auto}
+.failed-card:not(.soft) .failure-card-reason{color:#783f3f}
+.empty{min-height:calc(100dvh - 155px)}
+@media(max-width:1100px) and (min-width:781px){.gallery{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}.topbar{flex-wrap:wrap}}
+@media(max-width:780px){.settings-grid .field input,.settings-grid .field select{font-size:16px}.failed-card .image-box{min-height:250px}}
+@media(max-width:360px){.topbar{padding:20px 16px 16px}.gallery-wrap{padding:0 16px 28px}.failed-card .image-box{padding:12px}.failed-card.soft .image-box{padding:12px}}
+
+</style>
 </head>
 <body>
 <main class="app">
@@ -56,10 +108,11 @@
 <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="设置">
  <div class="modal">
   <div class="modal-head"><h3>设置与生成记录</h3><button id="closeSettings" class="close" type="button" aria-label="关闭">×</button></div>
-  <div class="tabs"><button class="tab active" data-tab="api" type="button">密钥设置</button><button class="tab" data-tab="logs" type="button">生成记录</button></div>
+  <div class="tabs"><button class="tab active" data-tab="api" type="button">生成设置</button><button class="tab" data-tab="logs" type="button">生成记录</button></div>
   <section id="panel-api" class="tab-panel active">
    <div class="settings-grid">
     <label class="field" style="grid-column:1/-1"><span>客户密钥</span><div class="secret-row"><input id="apiKey" type="password" autocomplete="off" placeholder="请输入购买的密钥"><button id="toggleKey" class="small-btn" type="button">显示</button></div></label>
+    <label class="field" style="grid-column:1/-1"><span>生成图片格式</span><select id="outputFormat"><option value="png">PNG · 无损画质</option><option value="jpeg">JPG · 高画质，文件更小</option></select><small class="quota-message">手机默认 JPG，电脑默认 PNG；手动保存后按您的选择。JPG 使用 95 高画质，保持原图尺寸，适合保存和分享；PNG 适合精细线稿和反复编辑。应用于新生成、参考图、修改及提取线稿。</small></label>
     <div id="quotaPanel" class="quota-panel"><div class="quota-head"><strong>密钥额度状态</strong><button id="refreshQuota" class="quota-refresh" type="button">刷新额度</button></div><div class="quota-grid"><div class="quota-stat"><span>剩余积分</span><b id="quotaRemaining">--</b></div><div class="quota-stat"><span>累计已用</span><b id="quotaUsed">--</b></div><div class="quota-stat"><span>有效期</span><b id="quotaExpiry">--</b></div></div><p id="quotaMessage" class="quota-message">保存密钥后即可查询，不会消耗积分。</p></div>
    </div>
    <button id="saveSettings" class="save-settings" type="button">保存设置</button>
@@ -89,7 +142,13 @@ let uploadedReferences=[], galleryReferenceItems=new Map();
 let galleryReferenceIds=new Set();
 try { const ids=JSON.parse(localStorage.getItem(REFERENCE_GALLERY_KEY)||"[]"); if(Array.isArray(ids))galleryReferenceIds=new Set(ids.map(String)); } catch {}
 function params(){return{age:els.age.value,person:els.person.value,titleMode:els.titleMode.value,smallText:els.smallText.value,textBoxes:els.textBoxes.value,size:els.size.value,quality:"high",titleText:els.titleText.value.trim(),subject:els.subject.value.trim()}}
-function getSettings(){let saved={};try{saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")||{}}catch{}return{apiBase:"https://vip.aittco.com/v1",apiPath:"/images/generations",taskApiBase:location.protocol==="file:"?"":location.origin+"/api/image-tasks",model:"gpt-image-2",points:3,apiKey:typeof saved.apiKey==="string"?saved.apiKey:""}}
+function defaultOutputFormat() {
+  const mobile = navigator.userAgentData?.mobile === true
+    || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return mobile ? 'jpeg' : 'png';
+}
+function getSettings(){let saved={};try{saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")||{}}catch{}return{apiBase:"https://vip.aittco.com/v1",apiPath:"/images/generations",taskApiBase:location.protocol==="file:"?"":location.origin+"/api/image-tasks",model:"gpt-image-2",points:3,outputFormat:["png","jpeg"].includes(saved.outputFormat)?saved.outputFormat:defaultOutputFormat(),apiKey:typeof saved.apiKey==="string"?saved.apiKey:""}}
 function quotaPoints(value){let n=Number(value);return Number.isFinite(n)?n/50000:null}function formatPoints(value){if(value==null)return"--";return new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(value)+" 积分"}function setQuotaState(state,data,message){let badge=$("connectionBadge"),dotClass=state==="ready"?"ready":state==="low"?"low":state==="error"?"error":"";badge.classList.toggle("quota-low",state==="low");badge.classList.toggle("quota-error",state==="error");if(state==="loading")badge.innerHTML='<i class="status-dot"></i>正在查询额度';else if(state==="empty")badge.innerHTML='<i class="status-dot"></i>密钥待设置';else if(state==="error")badge.innerHTML='<i class="status-dot error"></i>密钥不可用';else{let remaining=data?.unlimited_quota?"无限额度":formatPoints(quotaPoints(data?.total_available));badge.innerHTML=`<i class="status-dot ${dotClass}"></i>剩余 ${remaining}`}$('quotaRemaining').textContent=data?(data.unlimited_quota?"无限额度":formatPoints(quotaPoints(data.total_available))):"--";$('quotaUsed').textContent=data?formatPoints(quotaPoints(data.total_used)):"--";let expires=Number(data?.expires_at||0);$('quotaExpiry').textContent=data?(expires>0?new Date(expires*1000).toLocaleDateString("zh-CN"):"永不过期"):"--";$('quotaMessage').textContent=message||"保存密钥后即可查询，不会消耗积分。"}
 async function refreshQuota({silent=false}={}){let s=getSettings();if(!s.apiKey){setQuotaState("empty",null);return null}if(quotaPromise)return quotaPromise;setQuotaState("loading",null,"正在向中转查询密钥额度……");let button=$("refreshQuota");button.disabled=true;quotaPromise=(async()=>{try{let origin=new URL(s.apiBase).origin,res=await fetch(origin+"/api/usage/token/",{method:"GET",headers:{Authorization:`Bearer ${s.apiKey}`},cache:"no-store"}),payload=await res.json().catch(()=>({})),data=payload?.data;if(!res.ok||!data)throw new Error(payload?.message||`额度查询失败（HTTP ${res.status}）`);let remaining=quotaPoints(data.total_available),state=!data.unlimited_quota&&remaining!=null&&remaining<3?"low":"ready",modelOk=!data.model_limits_enabled||data.model_limits?.[s.model]===true,msg=modelOk?`密钥“${data.name||"未命名"}”验证成功；额度来自中转实时数据。`:`密钥有效，但当前密钥的模型限制中没有 ${s.model}。`;setQuotaState(state,data,msg);if(state==="low"&&!silent)toast("剩余积分不足一次生图，请及时充值");return data}catch(e){setQuotaState("error",null,e?.message||"额度查询失败");if(!silent)toast(e?.message||"额度查询失败");return null}finally{button.disabled=false;quotaPromise=null}})();return quotaPromise}
 
@@ -102,12 +161,57 @@ function showHelp(target){let bubble=$("helpBubble"),r=target.getBoundingClientR
 
 
 // ===== image-work.js =====
+// Copy file-backed and legacy cached Blobs into readable bytes before upload/storage.
+async function readImageBytes(blob) {
+  if (!blob || !blob.size) throw new Error('图片数据为空，请重新选择原图');
+  let bytes;
+  try { bytes = await blob.arrayBuffer(); }
+  catch (error) {
+    if (typeof FileReader === 'undefined') throw new Error('无法读取原图，请重新选择或导入原图后重试');
+    bytes = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reader.onabort = () => reject(new Error('无法读取原图，请重新选择或导入原图后重试'));
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+  if (!bytes || bytes.byteLength !== blob.size) throw new Error('原图数据不完整，请重新选择或导入原图后重试');
+  return bytes;
+}
+async function readableImageBlob(blob) {
+  return new Blob([await readImageBytes(blob)], { type: blob.type || '' });
+}
+// The DOM image decoder provides a second path when ImageBitmap fails on mobile.
+async function decodeImageSource(blob, preferDOM = false) {
+  if (!preferDOM && typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(blob);
+      return { image: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+    } catch (error) {
+      if (typeof document === 'undefined') throw error;
+    }
+  }
+  if (typeof document === 'undefined') throw new Error('图片需要使用页面兼容模式读取');
+  const img = document.createElement('img'), url = URL.createObjectURL(blob);
+  const close = () => { img.onload = img.onerror = null; img.removeAttribute('src'); URL.revokeObjectURL(url); };
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { close(); reject(new Error('读取图片超时，请重新选择原图后重试')); }, 30000);
+      img.onload = () => { clearTimeout(timer); resolve(); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('无法解码这张图片，请重新导入 PNG 或 JPG 原图后重试')); };
+      img.src = url;
+    });
+    if (!img.naturalWidth || !img.naturalHeight) throw new Error('图片尺寸无效，请重新选择原图');
+    return { image: img, width: img.naturalWidth, height: img.naturalHeight, close };
+  } catch (error) { close(); throw error; }
+}
 // One graphics job at a time. OffscreenCanvas keeps decoding/encoding off the UI thread.
-async function transformImage(job) {
-  const bitmap = await createImageBitmap(job.blob);
+async function transformImage(job, preferDOM = false) {
+  const source = await decodeImageSource(job.blob, preferDOM);
+  const bitmap = source.image;
   let canvas;
   try {
-    const sourceWidth = bitmap.width, sourceHeight = bitmap.height;
+    const sourceWidth = source.width, sourceHeight = source.height;
     if (job.type === 'dimensions') return { width: sourceWidth, height: sourceHeight };
     let width = sourceWidth, height = sourceHeight;
     if (job.type === 'thumbnail') {
@@ -115,7 +219,7 @@ async function transformImage(job) {
       width = Math.max(1, Math.round(width * scale));
       height = Math.max(1, Math.round(height * scale));
     }
-    canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
+    canvas = !preferDOM && typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
     canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('浏览器无法处理这张图片');
@@ -131,7 +235,7 @@ async function transformImage(job) {
     const blob = canvas.convertToBlob ? await canvas.convertToBlob({ type, quality }) : await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('图片导出失败')), type, quality));
     return { blob, width, height, sourceWidth, sourceHeight, aspectRatio: width / height };
   } finally {
-    bitmap.close();
+    source.close();
     if (canvas) { canvas.width = 1; canvas.height = 1; }
   }
 }
@@ -147,7 +251,7 @@ const ImageWork = (() => {
   function getWorker() {
     if (disabled || typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined') return null;
     if (worker) return worker;
-    const code = `${transformImage.toString()}\nself.onmessage=async e=>{const {id,job}=e.data;try{self.postMessage({id,result:await transformImage(job)})}catch(error){self.postMessage({id,error:error.message})}};`;
+    const code = `${decodeImageSource.toString()}\n${transformImage.toString()}\nself.onmessage=async e=>{const {id,job}=e.data;try{self.postMessage({id,result:await transformImage(job)})}catch(error){self.postMessage({id,error:error.message})}};`;
     const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
     try {
       worker = new Worker(url);
@@ -162,13 +266,17 @@ const ImageWork = (() => {
     finally { URL.revokeObjectURL(url); }
   }
   async function process(job) {
+    let preferDOM = false;
     const w = getWorker();
     if (w) {
       try { return await new Promise((resolve, reject) => { const id = ++nextId; waiting.set(id, { resolve, reject }); w.postMessage({ id, job }); }); }
-      catch (error) { if (!disabled) throw error; }
+      catch (error) {
+        // A worker can start successfully yet fail to decode a particular Blob.
+        stop(error); preferDOM = true;
+      }
     }
     await new Promise(resolve => setTimeout(resolve, 16));
-    return transformImage(job);
+    return transformImage(job, preferDOM);
   }
   return {
     run(job) { const result = tail.then(() => process(job)); tail = result.catch(() => {}); return result; },
@@ -201,9 +309,10 @@ const GalleryStore = (() => {
   const done = tx => new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error || new Error('浏览器缓存写入失败')); tx.onerror = () => {}; });
   const serial = fn => { const result = writes.then(fn); writes = result.catch(() => {}); return result; };
   function summary(item) {
-    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','editInstruction','failureType','failureTitle','error','assetId','assetIds','attempt','pendingType','pendingTitle','clientRequestId','serverTaskId'];
+    const keys = ['id','createdAt','time','subject','size','quality','state','kind','sourceId','width','height','aspectRatio','mimeType','editInstruction','failureType','failureTitle','errorType','error','assetId','assetIds','attempt','pendingType','pendingTitle','clientRequestId','serverTaskId'];
     const meta = {};
     for (const key of keys) if (item[key] !== undefined) meta[key] = item[key];
+    if (item.blob?.type) meta.mimeType = item.blob.type;
     meta.id = String(meta.id);
     meta.createdAt = Number(meta.createdAt) || Date.now();
     if (!meta.aspectRatio) meta.aspectRatio = item.width && item.height ? item.width / item.height : taskAspect(item.size);
@@ -225,10 +334,19 @@ const GalleryStore = (() => {
     if (snapshot) {
       const source = snapshot.source ? { ...summary(snapshot.source), assetId: asset(snapshot.source, 'source:' + item.id) } : null;
       const references = (snapshot.references || []).map((ref, i) => ({ name: ref.name || '参考图', assetId: asset(ref, 'reference:' + item.id + ':' + i) }));
-      snapshot = { id: meta.id, type: snapshot.type, params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
+      snapshot = { id: meta.id, type: snapshot.type, outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
     }
     meta.assetIds = [...ids];
     return { meta, assets: [...assets.values()], snapshot };
+  }
+  // 使用字节存储，减少移动浏览器持久化文件型 Blob 的兼容问题。
+  // 统一存为 ArrayBuffer + type，读取时重建 Blob。
+  async function encodeAssetBlob(blob) { return { buffer: await readImageBytes(blob), type: blob.type || '' }; }
+  function decodeAssetBlob(data) {
+    if (!data) return null;
+    if (data.blob) return data.blob; // 兼容旧数据（直接存 Blob）
+    if (data.buffer) return new Blob([data.buffer], { type: data.type || 'image/jpeg' });
+    return null;
   }
   function open() {
     if (ready) return ready;
@@ -318,10 +436,13 @@ const GalleryStore = (() => {
     return serial(async () => {
       let evicted = [];
       try {
+        // iOS Safari：入库前先把 Blob 转为 ArrayBuffer + type，避免读回时损坏
+        const encodedAssets = await Promise.all(data.assets.map(async a => ({ id: a.id, ...(await encodeAssetBlob(a.blob)) })));
+        const encodedThumb = thumbnail ? { id: data.meta.assetId, ...(await encodeAssetBlob(thumbnail.blob)), width: thumbnail.width, height: thumbnail.height } : null;
         await retryOnce(async () => {
           const db = await open(), tx = db.transaction(stores, 'readwrite'), completion = done(tx);
-          for (const a of data.assets) tx.objectStore(ASSETS).put(a);
-          if (thumbnail) tx.objectStore(PREVIEWS).put({ id: data.meta.assetId, blob: thumbnail.blob, width: thumbnail.width, height: thumbnail.height });
+          for (const a of encodedAssets) tx.objectStore(ASSETS).put(a);
+          if (encodedThumb) tx.objectStore(PREVIEWS).put(encodedThumb);
           tx.objectStore(RECORDS).put(data.meta);
           if (data.snapshot) tx.objectStore(RETRIES).put(data.snapshot); else tx.objectStore(RETRIES).delete(data.meta.id);
           prune(tx, ids => { evicted = ids; });
@@ -335,7 +456,7 @@ const GalleryStore = (() => {
         for (const a of data.assets) transientAssets.set(a.id, { ...a, thumbnail });
         while (transient.size > MAX_IMAGES) transient.delete(transient.keys().next().value);
         collectTransientAssets();
-        return { item: data.meta, cached: false, evicted };
+        return { item: data.meta, cached: false, cacheError: error?.name === 'QuotaExceededError' ? 'quota' : 'unavailable', evicted };
       }
     });
   }
@@ -360,8 +481,9 @@ const GalleryStore = (() => {
     const id = typeof value === 'string' ? value : value?.assetId;
     if (!id) throw new Error('原图数据缺失');
     const a = transientAssets.get(id) || await get(ASSETS, id);
-    if (!a?.blob) throw new Error('原图已清理或无法读取');
-    return a.blob;
+    const blob = decodeAssetBlob(a);
+    if (!blob) throw new Error('原图已清理或无法读取');
+    return readableImageBlob(blob);
   }
   async function preview(id) {
     if (previewJobs.has(id)) return previewJobs.get(id);
@@ -369,18 +491,22 @@ const GalleryStore = (() => {
       const temp = transientAssets.get(id);
       if (temp?.thumbnail) return temp.thumbnail.blob;
       const existing = await get(PREVIEWS, id);
-      if (existing?.blob) return existing.blob;
+      const cached = decodeAssetBlob(existing);
+      if (cached) return cached;
       const blob = await original(id), thumb = await ImageWork.run({ type: 'thumbnail', blob });
       if (temp) temp.thumbnail = thumb;
-      else await serial(async () => {
-        await retryOnce(async () => {
-          const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
-          // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
-          const q = tx.objectStore(ASSETS).getKey(id);
-          q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, blob: thumb.blob, width: thumb.width, height: thumb.height }); };
-          await completion;
-        });
-      }).catch(error => console.warn('预览缓存保存失败', error));
+      else {
+        const encoded = await encodeAssetBlob(thumb.blob);
+        await serial(async () => {
+          await retryOnce(async () => {
+            const db = await open(), tx = db.transaction([ASSETS, PREVIEWS], 'readwrite'), completion = done(tx);
+            // Avoid resurrecting an asset that was deleted while its thumbnail was being built.
+            const q = tx.objectStore(ASSETS).getKey(id);
+            q.onsuccess = () => { if (q.result !== undefined) tx.objectStore(PREVIEWS).put({ id, ...encoded, width: thumb.width, height: thumb.height }); };
+            await completion;
+          });
+        }).catch(error => console.warn('预览缓存保存失败', error));
+      }
       return thumb.blob;
     })();
     previewJobs.set(id, job);
@@ -428,7 +554,41 @@ function decodeImageBase64(value) {
 }
 async function imageBlob(data){let d=findImagePayload(data)||data?.data?.[0]||data?.result?.data?.[0]||data?.output?.[0]||data,encoded=d?.b64_json||d?.b64||d?.partial_image_b64;if(encoded){if(typeof encoded==='string'&&/^https?:\/\//i.test(encoded.trim()))d={...d,url:encoded.trim()};else{let decoded=decodeImageBase64(encoded);return new Blob([decoded.bytes],{type:decoded.mime})}}let url=d?.url||d?.image_url||data?.image_url||data?.url;if(url){let lastError;for(let attempt=0;attempt<2;attempt++){try{let r=await fetch(url);if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.blob()}catch(e){lastError=e;if(!attempt)await new Promise(resolve=>setTimeout(resolve,800))}}let origin="未知图片域名";try{origin=new URL(url).origin}catch{}throw new Error(`图片已在后台生成，但浏览器无法下载返回图片（${origin}）：${lastError?.message||"连接失败"}。可能是图片域名跨域限制或临时链接失效`)}throw new Error("接口已响应，但没有找到图片数据")}
 async function fetchApi(url,options={}){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest();xhr.open(options.method||"GET",url,true);xhr.timeout=0;xhr.responseType="blob";for(let[key,value]of Object.entries(options.headers||{}))xhr.setRequestHeader(key,value);xhr.onload=()=>{let headers=new Headers();for(let line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)){let i=line.indexOf(":");if(i>0)headers.append(line.slice(0,i).trim(),line.slice(i+1).trim())}resolve(new Response(xhr.response,{status:xhr.status,statusText:xhr.statusText,headers}))};xhr.onerror=()=>reject(new Error("生图连接被远端中断（XHR 状态 0）。客户端已设置为永不超时，请核对中转的跨域长连接配置和扣费记录，不要立即重复提交"));xhr.ontimeout=()=>reject(new Error("生图请求发生超时；当前客户端 timeout=0，正常情况下不会主动超时"));xhr.onabort=()=>reject(new Error("生图请求已被中止"));xhr.send(options.body??null)})}
-async function submitAsyncImageTask(base,path,bodyFactory,headers,apiKey,clientRequestId){let lastError=null;for(let attempt=0;attempt<2;attempt++){try{let response=await fetch(base+"/"+path,{method:"POST",headers:{...headers,Authorization:"Bearer "+apiKey,"Idempotency-Key":clientRequestId},body:bodyFactory(),cache:"no-store"}),text=await response.text(),data=null;try{data=JSON.parse(text)}catch{}if(!response.ok)throw Object.assign(new Error(data?.error||`异步后台提交失败（HTTP ${response.status}）`),{confirmed:true});if(!data?.id)throw new Error("异步后台没有返回任务ID");return data}catch(error){lastError=error;if(error?.confirmed)throw error;if(!attempt)await new Promise(resolve=>setTimeout(resolve,700))}}let error=new Error(`无法连接自己的异步后台：${lastError?.message||"网络连接失败"}。本次任务使用幂等编号保护，重新恢复时不会重复提交收费请求`);error.uncertain=true;throw error}
+async function submitAsyncImageTask(base, path, bodyFactory, headers, apiKey, clientRequestId) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(base + '/' + path, {
+        method: 'POST',
+        headers: { ...headers, Authorization: 'Bearer ' + apiKey, 'Idempotency-Key': clientRequestId },
+        body: bodyFactory(),
+        cache: 'no-store'
+      });
+      const text = await response.text(); let data = null;
+      try { data = JSON.parse(text); } catch {}
+      if (!response.ok) {
+        const error = new Error(data?.error || `异步后台提交失败（HTTP ${response.status}）`);
+        const retryableUpload = data?.retryable === true || response.status === 408 || response.status === 425;
+        if (retryableUpload && attempt < 2) {
+          lastError = error;
+          await new Promise(resolve => setTimeout(resolve, 900 * (attempt + 1)));
+          continue;
+        }
+        error.confirmed = true;
+        throw error;
+      }
+      if (!data?.id) throw new Error('异步后台没有返回任务ID');
+      return data;
+    } catch (error) {
+      lastError = error;
+      if (error?.confirmed) throw error;
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 900 * (attempt + 1)));
+    }
+  }
+  const error = new Error(`无法连接自己的异步后台：${lastError?.message || '网络连接失败'}。本次任务使用幂等编号保护，重新恢复时不会重复提交收费请求`);
+  error.uncertain = true;
+  throw error;
+}
 async function pollAsyncImageTask(base, id) {
   const POLL_TIMEOUT_MS = 30 * 60 * 1000, DELAYS = [2000, 3000, 5000, 8000, 15000];
   const startedAt = Date.now(), wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -496,6 +656,24 @@ function lineArtRequestSize(sourceDimensions) {
   while(width*height>maxPixels){if(width>=height)width-=16;else height-=16}
   return{width,height,size:`${width}x${height}`}
 }
+// 把上游英文错误 / 各种来源的报错，归类成固定几类，输出统一中文标题与说明。
+// 只做「提示翻译」，不做自动重试。未知/已有的本地中文错误原样保留。
+function classifyError(raw) {
+  const text = String(raw || '').trim(), lower = text.toLowerCase();
+  const has = words => words.some(w => /^\d{3}$/.test(w) ? new RegExp('(?:^|[^0-9])' + w + '(?![0-9])').test(lower) : lower.includes(w));
+  // 本地恢复/下载提示包含诊断信息，应保留完整操作建议。
+  if (/幂等编号保护|浏览器无法下载返回图片|客户端.*(?:timeout|超时)|请.*核对/.test(text)) return { type: 'unknown', title: '', detail: text };
+  const rules = [
+    { type: 'balance', title: '余额不足', detail: '账户余额不足，请到中转站充值后再试', test: () => has(['insufficient balance', 'insufficient_quota', 'insufficient quota', 'insufficient credit', 'insufficient_credit', 'out of credit', 'no credits', 'quota exceeded', 'quota_exceeded', '402', '余额不足']) },
+    { type: 'busy', title: '当前排队拥挤', detail: '当前使用人数较多，请稍后重新生成', test: () => has(['rate limit', 'rate_limit', 'too many request', 'rate exceeded', '429', '限流', '拥挤', '排队', '请求过多', '请求次数过多', '并发过高', '满载', '任务过多']) },
+    { type: 'server', title: '服务暂时繁忙', detail: '中转服务暂时不稳定，请稍后重试', test: () => has(['upstream', 'bad gateway', 'gateway', '502', '503', '504', '500', 'overload', 'maintenance', 'timeout', '繁忙', '服务不可用', '内部错误', '服务异常']) },
+    { type: 'key', title: '密钥无效', detail: '客户密钥无效或已失效，请重新填写', test: () => has(['invalid api key', 'invalid_api_key', 'unauthorized', 'key not active', '401', '密钥无效', '密钥已失效']) },
+    { type: 'model', title: '模型不可用', detail: '当前模型暂不可用或无访问权限，请更换模型', test: () => has(['model not found', 'model_not_found', 'no permission', 'no_permission', 'permission denied', 'forbidden', '403', '404', '模型不可用', '无权限']) },
+    { type: 'content', title: '内容未通过审核', detail: '描述内容未通过审核，请调整后重试', test: () => has(['safety', 'content_policy', 'content policy', 'moderation', '422', '审核', '违规', '敏感', '不安全']) },
+  ];
+  for (const r of rules) if (r.test()) return { type: r.type, title: r.title, detail: r.detail };
+  return { type: 'unknown', title: '', detail: text };
+}
 
 
 // ===== gallery.js =====
@@ -533,6 +711,15 @@ function mobileActionMode() {
   return innerWidth <= 780 || matchMedia('(hover: none), (pointer: coarse)').matches;
 }
 function bindCardActions(card, item) {
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', (item.subject || '图片') + '，打开图片操作菜单');
+  card.addEventListener('keydown', e => {
+    if (e.target !== card || !['Enter', ' '].includes(e.key)) return;
+    e.preventDefault();
+    const rect = card.getBoundingClientRect(); setHighlight(card);
+    openContextMenu(rect.left + 12, rect.top + 12, item, mobileActionMode());
+    $('contextMenu').querySelector('button:not([hidden])')?.focus({ preventScroll: true });
+  });
   let tapStart = null, suppressClickUntil = 0;
   card.addEventListener('contextmenu', e => {
     e.preventDefault();
@@ -562,15 +749,24 @@ function bindCardActions(card, item) {
     if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); }
   });
 }
+function appendCardCaption(card, item, detail) {
+  const body = document.createElement('div'), title = document.createElement('h3'), meta = document.createElement('div');
+  body.className = 'card-body'; title.className = 'card-title'; meta.className = 'meta';
+  title.textContent = item.subject || '生成图片'; title.title = title.textContent;
+  const kind = document.createElement('span'), format = document.createElement('span');
+  kind.textContent = detail || ({ lineart: '线稿', edit: '修改图片', reference: '参考图生成', import: '本地导入', pale: '浅色图片' }[item.kind] || '超清插画');
+  format.textContent = ({ 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP', 'image/gif': 'GIF' })[item.mimeType] || '';
+  meta.append(kind, format); body.append(title, meta); card.append(body);
+}
 function createCompletedCard(item) {
   const meta = GalleryStore.summary(item), card = document.createElement('article');
   galleryReferenceItems.set(meta.id, meta); galleryCards.set(meta.id, card);
-  card.className = 'card' + (meta.size === '1.4:1' ? ' landscape' : '') + (isGalleryReferenced(meta.id) ? ' reference-selected' : '');
+  card.className = 'card completed-card' + (meta.size === '1.4:1' ? ' landscape' : '') + (isGalleryReferenced(meta.id) ? ' reference-selected' : '');
   card.dataset.itemId = meta.id; card.title = mobileActionMode() ? '点击打开图片功能' : '右键打开图片功能';
   const box = document.createElement('div'), img = document.createElement('img');
   box.className = 'image-box'; box.style.setProperty('aspect-ratio', String(meta.aspectRatio), 'important');
   img.alt = meta.subject || '生成图片'; img.decoding = 'async'; img.loading = 'lazy';
-  box.append(img); card.append(box);
+  box.append(img); card.append(box); appendCardCaption(card, meta);
   thumbStates.set(card, { img, assetId: meta.assetId, visible: false, epoch: 0 });
   bindCardActions(card, meta);
   card.addEventListener('dblclick', () => { if (!mobileActionMode()) previewImage(meta); });
@@ -580,13 +776,18 @@ function createCompletedCard(item) {
 }
 function createFailedCard(item) {
   const card = document.createElement('article');
-  card.className = 'card failed-card' + (item.size === '1.4:1' ? ' landscape' : '');
+  const soft = item.errorType === 'busy' || item.errorType === 'server';
+  const icon = soft
+    ? '<svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c9902f" stroke-width="4"/><path d="M40 25v16l11 7" fill="none" stroke="#c9902f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c95555" stroke-width="4"/><path d="M40 21v25" stroke="#c95555" stroke-width="7" stroke-linecap="round"/><circle cx="40" cy="59" r="4" fill="#c95555"/></svg>';
+  card.className = 'card failed-card' + (soft ? ' soft' : '') + (item.size === '1.4:1' ? ' landscape' : '');
   card.dataset.itemId = String(item.id); card.title = mobileActionMode() ? '生成失败，点击可重新生成' : '生成失败，右键可重新生成';
   galleryCards.set(String(item.id), card);
-  card.innerHTML = '<div class="image-box"><div class="failure-visual"><svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c95555" stroke-width="4"/><path d="M40 21v25" stroke="#c95555" stroke-width="7" stroke-linecap="round"/><circle cx="40" cy="59" r="4" fill="#c95555"/></svg><strong class="failure-title"></strong><p class="failure-card-reason"></p><button class="failure-dismiss" type="button">删除失败记录</button></div></div>';
+  card.innerHTML = '<div class="image-box"><div class="failure-visual">' + icon + '<strong class="failure-title"></strong><p class="failure-card-reason"></p><button class="failure-dismiss" type="button">删除失败记录</button></div></div>';
   card.querySelector('.image-box').style.setProperty('aspect-ratio', String(taskAspect(item.size, item.aspectRatio)), 'important');
   card.querySelector('.failure-title').textContent = item.failureTitle || '生成失败';
   card.querySelector('.failure-card-reason').textContent = item.error || '未知错误';
+  appendCardCaption(card, item, '可稍后重试');
   card.querySelector('.failure-dismiss').onclick = e => { e.stopPropagation(); deleteImageItem(item); };
   bindCardActions(card, item);
   return card;
@@ -827,9 +1028,10 @@ async function addUploadedReferences(fileList) {
   for (const file of files) {
     if (referenceTotal() >= MAX_REFERENCE_IMAGES) break;
     try {
-      const thumb = await ImageWork.run({ type: 'thumbnail', blob: file });
+      const blob = await readableImageBlob(file);
+      const thumb = await ImageWork.run({ type: 'thumbnail', blob });
       if (referenceTotal() >= MAX_REFERENCE_IMAGES) break;
-      const id = newId(); uploadedReferences.push({ id, assetId: 'upload:' + id, name: file.name || '上传参考图', blob: file, thumbnail: thumb.blob });
+      const id = newId(); uploadedReferences.push({ id, assetId: 'upload:' + id, name: file.name || '上传参考图', blob, thumbnail: thumb.blob });
       added++; renderReferenceList();
     } catch (error) { console.warn(error); }
   }
@@ -838,6 +1040,10 @@ async function addUploadedReferences(fileList) {
 
 
 // ===== tasks.js =====
+function cacheFailureMessage(saved, record = '记录') {
+  const reason = saved.cacheError === 'quota' ? '浏览器存储空间不足' : '浏览器本地保存失败';
+  return reason + '，此' + record + '仅在当前页面临时保留';
+}
 // A shared task lifecycle keeps four entry points consistent and makes a future server adapter local.
 const runningTasks = new Map(), retryLocks = new Set(), localLocks = new Set();
 const newId = () => crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
@@ -869,10 +1075,11 @@ async function requestTask(task, s, onServerTask = null) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
     return { blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId };
   }
+  const outputFormat = (task.outputFormat || s.outputFormat) === 'jpeg' ? 'jpeg' : 'png';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
-    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: 'png', moderation: 'auto', n: 1, response_format: 'b64_json' };
+    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
     asyncPath = 'generations'; asyncHeaders = { 'Content-Type': 'application/json' }; bodyFactory = () => JSON.stringify(payload);
   } else {
     let size, aspectRatio = '', imageParts = [], extraFields = [];
@@ -888,7 +1095,7 @@ async function requestTask(task, s, onServerTask = null) {
       imageParts = [['image', task.source.blob, 'source.' + referenceExtension(task.source.blob)]];
       extraFields = task.type === 'lineart' ? [['task_type', 'lineart']] : [['task_type', 'edit'], ['instruction', task.instruction || '']];
     }
-    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', 'png'); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
+    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
     asyncPath = 'edits';
   }
   const submitted = await submitAsyncImageTask(base, asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
@@ -903,7 +1110,7 @@ async function runTask(spec, failedRecord = null) {
   await galleryReady;
   const id = failedRecord?.id || newId();
   if (runningTasks.has(id)) return;
-  const task = { ...spec, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
+  const task = { ...spec, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
   const labels = TASK_LABELS[task.type];
   if (!labels) return toast('无法识别这个任务');
   const time = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -959,20 +1166,23 @@ async function runTask(spec, failedRecord = null) {
       toast('查询暂时中断，任务编号已保留，可刷新页面继续查询');
       return;
     }
-    const reason = String(error?.message || '未知错误');
-    const item = { id, createdAt: Date.now(), time, kind: 'failed', failureType: current.type, failureTitle: labels[1], error: reason, subject: taskSubject(current), size, aspectRatio, quality: '失败', state: current.params || current.source?.state || null, attempt: (failedRecord?.attempt || 0) + 1 };
+    const rawReason = String(error?.message || '未知错误');
+    const classified = classifyError(rawReason);
+    const reason = classified.detail; // unknown 时即为原文
+    const failureTitle = classified.type === 'unknown' ? labels[1] : classified.title;
+    const item = { id, createdAt: Date.now(), time, kind: 'failed', failureType: current.type, failureTitle, errorType: classified.type, error: reason, subject: taskSubject(current), size, aspectRatio, quality: '失败', state: current.params || current.source?.state || null, attempt: (failedRecord?.attempt || 0) + 1 };
     if (error?.uncertain) current.clientRequestId = current.clientRequestId || task.clientRequestId; else delete current.clientRequestId;
     saved = await GalleryStore.save(item, current);
     placeCard(createFailedCard(saved.item), loading, saved.evicted);
     addLog({ time, subject: item.subject, size, quality: labels[2], points: 0, success: false, error: reason, taskId: id });
     playTaskSound(false);
-    toast(saved.cached ? reason : reason + '；浏览器缓存不足，此失败记录暂未保存');
+    toast(saved.cached ? reason : reason + '；' + cacheFailureMessage(saved, '失败记录'));
     return;
   } finally { releaseAssets(); runningTasks.delete(id); updateTaskCount(); }
   playTaskSound(true);
   // Download/cache problems must never resubmit a successful, already billed model task.
   await download({ ...saved.item, blob: output.blob });
-  toast(saved.cached ? '生成成功，图片已自动下载' : '图片已生成并下载，但浏览器缓存不足');
+  toast(saved.cached ? '生成成功，图片已自动下载' : '图片已生成并下载；' + cacheFailureMessage(saved));
 }
 async function resumePendingTasks() {
   if (!getSettings().taskApiBase || !getSettings().apiKey) return;
@@ -1036,16 +1246,17 @@ async function importDroppedImages(fileList) {
   const files = [...fileList].filter(f => /^image\/(png|jpeg|webp|gif)$/i.test(f.type));
   if (!files.length) return toast('请拖入 PNG、JPG、WebP 或 GIF 图片');
   await galleryReady;
-  let imported = 0;
+  let imported = 0, uncached = null, lastError = null;
   for (const file of files) {
     try {
       const time = new Date().toLocaleString('zh-CN', { hour12: false }), subject = file.name.replace(/\.[^.]+$/, '') || '导入图片';
       // save() measures the original while creating the thumbnail; no second full decode.
-      const saved = await GalleryStore.save({ id: newId(), createdAt: Date.now(), time, subject, quality: '本地导入', kind: 'import', blob: file });
+      const saved = await GalleryStore.save({ id: newId(), createdAt: Date.now(), time, subject, quality: '本地导入', kind: 'import', blob: await readableImageBlob(file) });
       placeCard(createCompletedCard(saved.item), null, saved.evicted); imported++;
-    } catch (error) { console.warn(error); }
+      if (!saved.cached) uncached = saved;
+    } catch (error) { lastError = error; console.warn(error); }
   }
-  toast(imported ? `已导入${imported}张图片，可右键使用图片功能` : '图片导入失败，请更换图片后重试');
+  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : '，点击或右键使用图片功能') : lastError?.message || '图片导入失败，请更换图片后重试');
 }
 
 
@@ -1076,7 +1287,7 @@ function addLog(record) {
   clearTimeout(refreshQuota.afterTaskTimer);
   refreshQuota.afterTaskTimer = setTimeout(() => refreshQuota({ silent: true }), 1000);
 }
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; if (!s.apiKey) setQuotaState('empty', null); }
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -1088,7 +1299,7 @@ els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remov
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
 $('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
-$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '客户密钥已保存，正在校验额度' : '客户密钥已清除'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
+$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey, outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
 $('refreshQuota').onclick = () => refreshQuota();
 $('contextMenu').onclick = async e => {
   const action = e.target.closest('button')?.dataset.action, item = contextItem;

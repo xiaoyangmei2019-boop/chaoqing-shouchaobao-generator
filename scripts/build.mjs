@@ -30,5 +30,9 @@ if (!/<script>[\s\S]*?<\/script>/.test(html)) {
 }
 
 html = html.replace(/<script>[\s\S]*?<\/script>/, `<script>\n${script}\n</script>`);
+const design = '<style id="workbench-design">\n' + fs.readFileSync(path.join(sourceDir, 'design.css'), 'utf8') + '\n</style>';
+html = /<style id="workbench-design">[\s\S]*?<\/style>/.test(html)
+  ? html.replace(/<style id="workbench-design">[\s\S]*?<\/style>/, design)
+  : html.replace('</head>', design + '\n</head>');
 fs.writeFileSync(target, html);
 console.log(`已生成 index.html（${Buffer.byteLength(html)} 字节，${modules.length} 个源码模块）。`);

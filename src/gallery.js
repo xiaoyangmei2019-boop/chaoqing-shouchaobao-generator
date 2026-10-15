@@ -32,6 +32,15 @@ function mobileActionMode() {
   return innerWidth <= 780 || matchMedia('(hover: none), (pointer: coarse)').matches;
 }
 function bindCardActions(card, item) {
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', (item.subject || '图片') + '，打开图片操作菜单');
+  card.addEventListener('keydown', e => {
+    if (e.target !== card || !['Enter', ' '].includes(e.key)) return;
+    e.preventDefault();
+    const rect = card.getBoundingClientRect(); setHighlight(card);
+    openContextMenu(rect.left + 12, rect.top + 12, item, mobileActionMode());
+    $('contextMenu').querySelector('button:not([hidden])')?.focus({ preventScroll: true });
+  });
   let tapStart = null, suppressClickUntil = 0;
   card.addEventListener('contextmenu', e => {
     e.preventDefault();
@@ -61,15 +70,24 @@ function bindCardActions(card, item) {
     if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); }
   });
 }
+function appendCardCaption(card, item, detail) {
+  const body = document.createElement('div'), title = document.createElement('h3'), meta = document.createElement('div');
+  body.className = 'card-body'; title.className = 'card-title'; meta.className = 'meta';
+  title.textContent = item.subject || '生成图片'; title.title = title.textContent;
+  const kind = document.createElement('span'), format = document.createElement('span');
+  kind.textContent = detail || ({ lineart: '线稿', edit: '修改图片', reference: '参考图生成', import: '本地导入', pale: '浅色图片' }[item.kind] || '超清插画');
+  format.textContent = ({ 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP', 'image/gif': 'GIF' })[item.mimeType] || '';
+  meta.append(kind, format); body.append(title, meta); card.append(body);
+}
 function createCompletedCard(item) {
   const meta = GalleryStore.summary(item), card = document.createElement('article');
   galleryReferenceItems.set(meta.id, meta); galleryCards.set(meta.id, card);
-  card.className = 'card' + (meta.size === '1.4:1' ? ' landscape' : '') + (isGalleryReferenced(meta.id) ? ' reference-selected' : '');
+  card.className = 'card completed-card' + (meta.size === '1.4:1' ? ' landscape' : '') + (isGalleryReferenced(meta.id) ? ' reference-selected' : '');
   card.dataset.itemId = meta.id; card.title = mobileActionMode() ? '点击打开图片功能' : '右键打开图片功能';
   const box = document.createElement('div'), img = document.createElement('img');
   box.className = 'image-box'; box.style.setProperty('aspect-ratio', String(meta.aspectRatio), 'important');
   img.alt = meta.subject || '生成图片'; img.decoding = 'async'; img.loading = 'lazy';
-  box.append(img); card.append(box);
+  box.append(img); card.append(box); appendCardCaption(card, meta);
   thumbStates.set(card, { img, assetId: meta.assetId, visible: false, epoch: 0 });
   bindCardActions(card, meta);
   card.addEventListener('dblclick', () => { if (!mobileActionMode()) previewImage(meta); });
@@ -79,13 +97,18 @@ function createCompletedCard(item) {
 }
 function createFailedCard(item) {
   const card = document.createElement('article');
-  card.className = 'card failed-card' + (item.size === '1.4:1' ? ' landscape' : '');
+  const soft = item.errorType === 'busy' || item.errorType === 'server';
+  const icon = soft
+    ? '<svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c9902f" stroke-width="4"/><path d="M40 25v16l11 7" fill="none" stroke="#c9902f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c95555" stroke-width="4"/><path d="M40 21v25" stroke="#c95555" stroke-width="7" stroke-linecap="round"/><circle cx="40" cy="59" r="4" fill="#c95555"/></svg>';
+  card.className = 'card failed-card' + (soft ? ' soft' : '') + (item.size === '1.4:1' ? ' landscape' : '');
   card.dataset.itemId = String(item.id); card.title = mobileActionMode() ? '生成失败，点击可重新生成' : '生成失败，右键可重新生成';
   galleryCards.set(String(item.id), card);
-  card.innerHTML = '<div class="image-box"><div class="failure-visual"><svg class="failure-graphic" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="35" fill="#fff" stroke="#c95555" stroke-width="4"/><path d="M40 21v25" stroke="#c95555" stroke-width="7" stroke-linecap="round"/><circle cx="40" cy="59" r="4" fill="#c95555"/></svg><strong class="failure-title"></strong><p class="failure-card-reason"></p><button class="failure-dismiss" type="button">删除失败记录</button></div></div>';
+  card.innerHTML = '<div class="image-box"><div class="failure-visual">' + icon + '<strong class="failure-title"></strong><p class="failure-card-reason"></p><button class="failure-dismiss" type="button">删除失败记录</button></div></div>';
   card.querySelector('.image-box').style.setProperty('aspect-ratio', String(taskAspect(item.size, item.aspectRatio)), 'important');
   card.querySelector('.failure-title').textContent = item.failureTitle || '生成失败';
   card.querySelector('.failure-card-reason').textContent = item.error || '未知错误';
+  appendCardCaption(card, item, '可稍后重试');
   card.querySelector('.failure-dismiss').onclick = e => { e.stopPropagation(); deleteImageItem(item); };
   bindCardActions(card, item);
   return card;

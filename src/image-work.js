@@ -1,9 +1,54 @@
+// Copy file-backed and legacy cached Blobs into readable bytes before upload/storage.
+async function readImageBytes(blob) {
+  if (!blob || !blob.size) throw new Error('图片数据为空，请重新选择原图');
+  let bytes;
+  try { bytes = await blob.arrayBuffer(); }
+  catch (error) {
+    if (typeof FileReader === 'undefined') throw new Error('无法读取原图，请重新选择或导入原图后重试');
+    bytes = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reader.onabort = () => reject(new Error('无法读取原图，请重新选择或导入原图后重试'));
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+  if (!bytes || bytes.byteLength !== blob.size) throw new Error('原图数据不完整，请重新选择或导入原图后重试');
+  return bytes;
+}
+async function readableImageBlob(blob) {
+  return new Blob([await readImageBytes(blob)], { type: blob.type || '' });
+}
+// The DOM image decoder provides a second path when ImageBitmap fails on mobile.
+async function decodeImageSource(blob, preferDOM = false) {
+  if (!preferDOM && typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(blob);
+      return { image: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+    } catch (error) {
+      if (typeof document === 'undefined') throw error;
+    }
+  }
+  if (typeof document === 'undefined') throw new Error('图片需要使用页面兼容模式读取');
+  const img = document.createElement('img'), url = URL.createObjectURL(blob);
+  const close = () => { img.onload = img.onerror = null; img.removeAttribute('src'); URL.revokeObjectURL(url); };
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { close(); reject(new Error('读取图片超时，请重新选择原图后重试')); }, 30000);
+      img.onload = () => { clearTimeout(timer); resolve(); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('无法解码这张图片，请重新导入 PNG 或 JPG 原图后重试')); };
+      img.src = url;
+    });
+    if (!img.naturalWidth || !img.naturalHeight) throw new Error('图片尺寸无效，请重新选择原图');
+    return { image: img, width: img.naturalWidth, height: img.naturalHeight, close };
+  } catch (error) { close(); throw error; }
+}
 // One graphics job at a time. OffscreenCanvas keeps decoding/encoding off the UI thread.
-async function transformImage(job) {
-  const bitmap = await createImageBitmap(job.blob);
+async function transformImage(job, preferDOM = false) {
+  const source = await decodeImageSource(job.blob, preferDOM);
+  const bitmap = source.image;
   let canvas;
   try {
-    const sourceWidth = bitmap.width, sourceHeight = bitmap.height;
+    const sourceWidth = source.width, sourceHeight = source.height;
     if (job.type === 'dimensions') return { width: sourceWidth, height: sourceHeight };
     let width = sourceWidth, height = sourceHeight;
     if (job.type === 'thumbnail') {
@@ -11,7 +56,7 @@ async function transformImage(job) {
       width = Math.max(1, Math.round(width * scale));
       height = Math.max(1, Math.round(height * scale));
     }
-    canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
+    canvas = !preferDOM && typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
     canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('浏览器无法处理这张图片');
@@ -27,7 +72,7 @@ async function transformImage(job) {
     const blob = canvas.convertToBlob ? await canvas.convertToBlob({ type, quality }) : await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('图片导出失败')), type, quality));
     return { blob, width, height, sourceWidth, sourceHeight, aspectRatio: width / height };
   } finally {
-    bitmap.close();
+    source.close();
     if (canvas) { canvas.width = 1; canvas.height = 1; }
   }
 }
@@ -43,7 +88,7 @@ const ImageWork = (() => {
   function getWorker() {
     if (disabled || typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined') return null;
     if (worker) return worker;
-    const code = `${transformImage.toString()}\nself.onmessage=async e=>{const {id,job}=e.data;try{self.postMessage({id,result:await transformImage(job)})}catch(error){self.postMessage({id,error:error.message})}};`;
+    const code = `${decodeImageSource.toString()}\n${transformImage.toString()}\nself.onmessage=async e=>{const {id,job}=e.data;try{self.postMessage({id,result:await transformImage(job)})}catch(error){self.postMessage({id,error:error.message})}};`;
     const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
     try {
       worker = new Worker(url);
@@ -58,13 +103,17 @@ const ImageWork = (() => {
     finally { URL.revokeObjectURL(url); }
   }
   async function process(job) {
+    let preferDOM = false;
     const w = getWorker();
     if (w) {
       try { return await new Promise((resolve, reject) => { const id = ++nextId; waiting.set(id, { resolve, reject }); w.postMessage({ id, job }); }); }
-      catch (error) { if (!disabled) throw error; }
+      catch (error) {
+        // A worker can start successfully yet fail to decode a particular Blob.
+        stop(error); preferDOM = true;
+      }
     }
     await new Promise(resolve => setTimeout(resolve, 16));
-    return transformImage(job);
+    return transformImage(job, preferDOM);
   }
   return {
     run(job) { const result = tail.then(() => process(job)); tail = result.catch(() => {}); return result; },
