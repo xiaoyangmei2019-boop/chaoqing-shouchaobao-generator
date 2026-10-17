@@ -24,7 +24,7 @@ function addLog(record) {
   clearTimeout(refreshQuota.afterTaskTimer);
   refreshQuota.afterTaskTimer = setTimeout(() => refreshQuota({ silent: true }), 1000);
 }
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; if (!s.apiKey) setQuotaState('empty', null); }
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -36,7 +36,7 @@ els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remov
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
 $('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
-$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey, outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
+$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey, route: $('generationRoute').value === 'line2' ? 'line2' : 'line1', outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
 $('refreshQuota').onclick = () => refreshQuota();
 $('contextMenu').onclick = async e => {
   const action = e.target.closest('button')?.dataset.action, item = contextItem;

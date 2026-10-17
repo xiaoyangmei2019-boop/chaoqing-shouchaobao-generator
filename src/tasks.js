@@ -33,11 +33,12 @@ async function requestTask(task, s, onServerTask = null) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
     return { blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId };
   }
+  const route = (task.route || s.route) === 'line2' ? 'line2' : 'line1';
   const outputFormat = (task.outputFormat || s.outputFormat) === 'jpeg' ? 'jpeg' : 'png';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
-    const payload = { model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
+    const payload = { route, model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
     asyncPath = 'generations'; asyncHeaders = { 'Content-Type': 'application/json' }; bodyFactory = () => JSON.stringify(payload);
   } else {
     let size, aspectRatio = '', imageParts = [], extraFields = [];
@@ -53,7 +54,7 @@ async function requestTask(task, s, onServerTask = null) {
       imageParts = [['image', task.source.blob, 'source.' + referenceExtension(task.source.blob)]];
       extraFields = task.type === 'lineart' ? [['task_type', 'lineart']] : [['task_type', 'edit'], ['instruction', task.instruction || '']];
     }
-    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
+    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('route', route); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
     asyncPath = 'edits';
   }
   const submitted = await submitAsyncImageTask(base, asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
@@ -68,7 +69,7 @@ async function runTask(spec, failedRecord = null) {
   await galleryReady;
   const id = failedRecord?.id || newId();
   if (runningTasks.has(id)) return;
-  const task = { ...spec, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
+  const task = { ...spec, route: spec.route || getSettings().route, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
   const labels = TASK_LABELS[task.type];
   if (!labels) return toast('无法识别这个任务');
   const time = new Date().toLocaleString('zh-CN', { hour12: false });

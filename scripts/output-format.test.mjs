@@ -14,24 +14,32 @@ try {
   await page.goto('http://format-test.local/');
   await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), mobile ? 'jpeg' : 'png');
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line1');
+  assert.equal(await page.locator('#generationRoute').innerText(), '线路一 · 收费 0.3\n线路二 · 收费 0.8 · 更加顺畅');
+  assert(!(await page.locator('#modal').innerText()).includes('gpt-image'));
   // Old settings with only a key inherit the device default after upgrading.
   await page.evaluate(() => localStorage.setItem('tonghua-commercial-settings-v1', JSON.stringify({ apiKey: '' })));
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), mobile ? 'jpeg' : 'png');
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line1');
+  await page.locator('#generationRoute').selectOption('line2');
   await page.locator('#outputFormat').selectOption('jpeg');
   if (process.env.SETTINGS_SCREENSHOT) await page.screenshot({ path: process.env.SETTINGS_SCREENSHOT });
   await page.locator('#saveSettings').click();
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), 'jpeg');
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line2');
   // Download naming follows the returned image bytes/MIME rather than the preference.
   await page.addScriptTag({ content: fs.readFileSync(new URL('src/references.js', root), 'utf8') });
   const gallery = fs.readFileSync(new URL('src/gallery.js', root), 'utf8');
   await page.addScriptTag({ content: gallery.slice(gallery.indexOf('function filename('), gallery.indexOf('async function download(')) });
   const extension = await page.evaluate(() => filename({ createdAt: Date.now(), blob: new Blob(['jpeg'], { type: 'image/jpeg' }) }));
   assert(extension.endsWith('.jpg'));
+  await page.locator('#generationRoute').selectOption('line1');
   await page.locator('#outputFormat').selectOption('png'); await page.locator('#saveSettings').click();
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), 'png');
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line1');
   assert.deepEqual(errors, []);
   await page.close();
   }

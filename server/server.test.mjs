@@ -11,16 +11,17 @@ import { createAsyncImageServer } from './server.mjs';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 const jpeg = await fsp.readFile(new URL('./fixtures/output-test.jpg', import.meta.url));
 let upstreamPosts = 0, editUploads = 0;
+const forwardedModels = [];
 const upstream = http.createServer(async (req, res) => {
   if (req.method !== 'POST') { res.writeHead(404).end(); return; }
   upstreamPosts++;
   const chunks = []; for await (const chunk of req) chunks.push(chunk);
   const requestBody = Buffer.concat(chunks);
-  assert(requestBody.includes(Buffer.from('gpt-image-2')), '2.0 production model is forwarded upstream');
-  assert(!requestBody.includes(Buffer.from('gpt-image-2.5-sunburst')), '2.5 test model is not used by the production backend');
   let jpegRequested = false;
   if (req.url.includes('/generations')) {
     const json = JSON.parse(requestBody.toString('utf8'));
+    assert(['gpt-image-2', 'gpt-image-2-official'].includes(json.model), 'new generations must never use the modification model');
+    forwardedModels.push(json.model);
     jpegRequested = json.output_format === 'jpeg';
     assert.equal(json.output_compression, jpegRequested ? 95 : undefined);
     assert.equal(json.quality, 'high');
@@ -30,6 +31,9 @@ const upstream = http.createServer(async (req, res) => {
   if (req.url.includes('/edits')) {
     editUploads++; assert(requestBody.includes(Buffer.from('name="image"')));
     const multipart = requestBody.toString('latin1');
+    const model = multipart.match(/name="model"\r\n\r\n([^\r\n]+)/)?.[1];
+    assert(model, 'multipart model field is present');
+    forwardedModels.push(model);
     jpegRequested = /name="output_format"\r\n\r\njpeg\r\n/.test(multipart);
     assert.equal(/name="output_compression"\r\n\r\n95\r\n/.test(multipart), jpegRequested);
   }
@@ -84,6 +88,7 @@ for (let i = 0; i < 80; i++) {
 assert.equal(status.status, 'succeeded'); assert.equal(status.points, 3); assert.equal(status.upstreamRequestId, 'mock-upstream-request');
 assert.deepEqual(await (await fetch(`http://127.0.0.1:${app.server.address().port}${status.resultUrl}`)).buffer(), png);
 assert.equal(upstreamPosts, 1, 'duplicate browser submission makes one billed upstream POST');
+assert.equal(forwardedModels[0], 'gpt-image-2', 'old clients default to route one');
 
 const form = new FormData(); form.append('task_type', 'lineart'); form.append('size', '1024x1024'); form.append('image', png, { filename: 'source.png', contentType: 'image/png', knownLength: png.length });
 const edit = await (await fetch(base + '/edits', { method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID() }, body: form })).json();
@@ -92,6 +97,7 @@ for (let i = 0; i < 80; i++) {
   if (status.status === 'succeeded') break;
   await new Promise(resolve => setTimeout(resolve, 25));
 }
+assert.equal(forwardedModels[forwardedModels.length - 1], 'gpt-image-2', 'PNG line art keeps the original model');
 assert.equal(status.status, 'succeeded'); assert.equal(upstreamPosts, 2); assert.equal(editUploads, 1);
 const metadata = (await Promise.all((await fsp.readdir(path.join(dataDir, 'tasks'))).map(name => fsp.readFile(path.join(dataDir, 'tasks', name), 'utf8')))).join('\n');
 assert(!metadata.includes(secret), 'customer key is never persisted');
@@ -175,13 +181,13 @@ assert.equal(upstreamPosts, beforeBadType, '未知 task_type 不调用上游');
 
 // JPEG generation and editing preserve the returned bytes and Content-Type.
 const jpgParams = { subject: '测试主题JPG', age: 'grade3_6', person: 'with', titleMode: 'none', smallText: 'none', textBoxes: '0', titleText: '', size: '1:1.4' };
-for (const mode of ['generation', 'lineart', 'edit', 'reference']) {
+for (const route of ['line1', 'line2']) for (const mode of ['generation', 'lineart', 'edit', 'reference']) {
   let body, requestHeaders = { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID() };
   if (mode === 'generation') {
     requestHeaders['Content-Type'] = 'application/json';
-    body = JSON.stringify({ params: jpgParams, output_format: 'jpeg' });
+    body = JSON.stringify({ route, params: jpgParams, output_format: 'jpeg', model: 'gpt-image-2.5-sunburst' });
   } else {
-    body = new FormData(); body.append('task_type', mode); body.append('output_format', 'jpeg');
+    body = new FormData(); body.append('route', route); body.append('model', mode === 'edit' ? 'gpt-image-2' : 'gpt-image-2.5-sunburst'); body.append('task_type', mode); body.append('output_format', 'jpeg');
     body.append('size', '1024x1024'); body.append('instruction', '保留画面');
     for (const [key, value] of Object.entries(jpgParams)) if (key !== 'size') body.append(key, value);
     body.append('image', jpeg, { filename: 'source.jpg', contentType: 'image/jpeg' });
@@ -195,6 +201,7 @@ for (const mode of ['generation', 'lineart', 'edit', 'reference']) {
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   assert.equal(status.status, 'succeeded', mode);
+  assert.equal(forwardedModels[forwardedModels.length - 1], mode === 'edit' ? 'gpt-image-2.5-sunburst' : route === 'line2' ? 'gpt-image-2-official' : 'gpt-image-2', route + ':' + mode + ' uses its server-selected model regardless of the frontend model field');
   const result = await fetch(`http://127.0.0.1:${app.server.address().port}${status.resultUrl}`);
   assert.equal(result.headers.get('content-type'), 'image/jpeg');
   assert.deepEqual(await result.buffer(), jpeg);
@@ -205,6 +212,21 @@ const badFormat = await fetch(base + '/generations', {
   body: JSON.stringify({ params: jpgParams, output_format: 'gif' })
 });
 assert.equal(badFormat.status, 400); assert.equal(upstreamPosts, beforeBadFormat);
+
+// Reject unknown routes before making any billed upstream request.
+const beforeInvalidRoute = upstreamPosts;
+for (const type of ['generation', 'lineart']) {
+  const body = type === 'generation' ? JSON.stringify({ params: jpgParams, route: 'unknown' }) : new FormData();
+  if (type !== 'generation') {
+    body.append('task_type', type); body.append('route', 'unknown');
+    body.append('image', png, { filename: 'source.png', contentType: 'image/png' });
+  }
+  const res = await fetch(base + (type === 'generation' ? '/generations' : '/edits'), {
+    method: 'POST', body, headers: { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID(), ...(type === 'generation' ? { 'Content-Type': 'application/json' } : {}) }
+  });
+  assert.equal(res.status, 400);
+}
+assert.equal(upstreamPosts, beforeInvalidRoute);
 
 // 并发预占：MAX_ACTIVE_TOTAL=2 时同时提交 10 个任务，最多 2 个 202，其余 429
 const concDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'image-task-conc-'));
@@ -220,4 +242,4 @@ await new Promise(resolve => setTimeout(resolve, 300));
 await concurrencyApp.close(); await fsp.rm(concDataDir, { recursive: true, force: true });
 
 await app.close(); await new Promise(resolve => upstream.close(resolve)); await fsp.rm(dataDir, { recursive: true, force: true });
-console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, and concurrency slot reservation.');
+console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, two-route selection and edit-only Sunburst model routing, and concurrency slot reservation.');

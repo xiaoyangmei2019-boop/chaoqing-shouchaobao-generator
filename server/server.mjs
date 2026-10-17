@@ -302,6 +302,11 @@ export async function createAsyncImageServer(options = {}) {
   const taskDir = path.join(dataDir, 'tasks'), resultDir = path.join(dataDir, 'results');
   const upstreamBase = String(options.upstreamBase || process.env.UPSTREAM_IMAGE_BASE || 'https://vip.aittco.com/v1').replace(/\/$/, '');
   const upstreamModel = String(options.upstreamModel || process.env.UPSTREAM_IMAGE_MODEL || 'gpt-image-2');
+  function routeModel(route, taskType) {
+    if (route != null && !['line1', 'line2'].includes(route)) throw badParam('生成线路无效，请重新选择线路');
+    if (taskType === 'edit') return 'gpt-image-2.5-sunburst';
+    return route === 'line2' ? 'gpt-image-2-official' : upstreamModel;
+  }
   const allowedOrigin = String(options.allowedOrigin || process.env.FRONTEND_ORIGIN || '').replace(/\/$/, '');
   const retentionMs = Number(options.retentionMs || process.env.TASK_RETENTION_MS || 24 * 60 * 60 * 1000);
   const maxActivePerIp = Number(options.maxActivePerIp || process.env.MAX_ACTIVE_PER_IP || 4);
@@ -430,7 +435,7 @@ export async function createAsyncImageServer(options = {}) {
         const params = validateParams(body.params || {});
         const aspectRatio = params.size === '1.4:1' ? '17:12' : '12:17';
         upstreamRequest = {
-          model: upstreamModel,
+          model: routeModel(body.route, 'generation'),
           prompt: buildPrompt(params, false).slice(0, 100000),
           size: aspectRatio === '17:12' ? '3424x2416' : '2416x3424',
           image_size: '4k',
@@ -462,7 +467,10 @@ export async function createAsyncImageServer(options = {}) {
           if (instruction.length > 500) return sendJson(res, 400, { error: '图片修改要求不能超过500字' });
           prompt = `请根据原图进行修改。严格保持原图的画面比例、整体构图和未要求修改的内容，只执行以下修改要求：\n${instruction}`;
         }
-        outgoing.append('model', upstreamModel); outgoing.append('prompt', prompt.slice(0, 100000));
+        // Only user-requested image modifications use Sunburst. Line art and
+        // reference generation share this endpoint but use the selected route.
+        outgoing.append('model', routeModel(incoming.fields.get('route'), taskType));
+        outgoing.append('prompt', prompt.slice(0, 100000));
         outgoing.append('size', validateSize(incoming.fields.get('size') || '2416x3424'));
         const aspectRatio = String(incoming.fields.get('aspect_ratio') || '');
         if (['12:17','17:12'].includes(aspectRatio)) { outgoing.append('image_size', '4k'); outgoing.append('aspect_ratio', aspectRatio); }
