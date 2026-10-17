@@ -112,6 +112,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
   <section id="panel-api" class="tab-panel active">
    <div class="settings-grid">
     <label class="field" style="grid-column:1/-1"><span>客户密钥</span><div class="secret-row"><input id="apiKey" type="password" autocomplete="off" placeholder="请输入购买的密钥"><button id="toggleKey" class="small-btn" type="button">显示</button></div></label>
+    <div id="adminSettingsEntry" style="grid-column:1/-1" hidden><button id="openAdminSettings" type="button" class="save-settings" aria-expanded="false" aria-controls="adminModelField">管理员模型与价格设置</button></div>
+    <label id="adminModelField" class="field" style="grid-column:1/-1" hidden><span>管理员模式 · 生图模型与价格</span><select id="adminModel"></select><small class="quota-message">管理员选择优先于线路设置，用于生图、参考图及线稿提取。修改图片继续使用专用模型。</small></label>
     <label class="field" style="grid-column:1/-1"><span>生成线路</span><select id="generationRoute"><option value="line1">线路一 · 收费 0.3</option><option value="line2">线路二 · 收费 0.8 · 更加顺畅</option></select></label>
     <label class="field" style="grid-column:1/-1"><span>生成图片格式</span><select id="outputFormat"><option value="png">PNG · 无损画质</option><option value="jpeg">JPG · 高画质，文件更小</option></select><small class="quota-message">手机默认 JPG，电脑默认 PNG；手动保存后按您的选择。JPG 使用 95 高画质，保持原图尺寸，适合保存和分享；PNG 适合精细线稿和反复编辑。应用于新生成、参考图、修改及提取线稿。</small></label>
     <div id="quotaPanel" class="quota-panel"><div class="quota-head"><strong>密钥额度状态</strong><button id="refreshQuota" class="quota-refresh" type="button">刷新额度</button></div><div class="quota-grid"><div class="quota-stat"><span>剩余积分</span><b id="quotaRemaining">--</b></div><div class="quota-stat"><span>累计已用</span><b id="quotaUsed">--</b></div><div class="quota-stat"><span>有效期</span><b id="quotaExpiry">--</b></div></div><p id="quotaMessage" class="quota-message">保存密钥后即可查询，不会消耗积分。</p></div>
@@ -154,6 +156,7 @@ function getSettings() {
   const route = saved.route === 'line2' ? 'line2' : 'line1';
   return { apiBase: 'https://vip.aittco.com/v1', apiPath: '/images/generations',
     taskApiBase: location.protocol === 'file:' ? '' : location.origin + '/api/image-tasks',
+    adminModel: ['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(saved.adminModel) ? saved.adminModel : '',
     route, model: route === 'line2' ? 'gpt-image-2-official' : 'gpt-image-2', points: 3,
     outputFormat: ['png', 'jpeg'].includes(saved.outputFormat) ? saved.outputFormat : defaultOutputFormat(),
     apiKey: typeof saved.apiKey === 'string' ? saved.apiKey : '' };
@@ -343,7 +346,7 @@ const GalleryStore = (() => {
     if (snapshot) {
       const source = snapshot.source ? { ...summary(snapshot.source), assetId: asset(snapshot.source, 'source:' + item.id) } : null;
       const references = (snapshot.references || []).map((ref, i) => ({ name: ref.name || '参考图', assetId: asset(ref, 'reference:' + item.id + ':' + i) }));
-      snapshot = { id: meta.id, type: snapshot.type, route: snapshot.route === 'line2' ? 'line2' : 'line1', outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
+      snapshot = { id: meta.id, type: snapshot.type, adminModel: snapshot.adminModel || '', route: snapshot.route === 'line2' ? 'line2' : 'line1', outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
     }
     meta.assetIds = [...ids];
     return { meta, assets: [...assets.values()], snapshot };
@@ -1089,7 +1092,7 @@ async function requestTask(task, s, onServerTask = null) {
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
-    const payload = { route, model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
+    const payload = { ...(task.adminModel ? { admin_model: task.adminModel } : {}), route, model: s.model, params: { ...p }, size: PRINT_REQUEST_SIZE[p.size] || PRINT_REQUEST_SIZE['1:1.4'], image_size: '4k', aspect_ratio: PRINT_API_RATIO[p.size] || PRINT_API_RATIO['1:1.4'], quality: 'high', output_format: outputFormat, moderation: 'auto', n: 1, response_format: 'b64_json' };
     asyncPath = 'generations'; asyncHeaders = { 'Content-Type': 'application/json' }; bodyFactory = () => JSON.stringify(payload);
   } else {
     let size, aspectRatio = '', imageParts = [], extraFields = [];
@@ -1105,7 +1108,7 @@ async function requestTask(task, s, onServerTask = null) {
       imageParts = [['image', task.source.blob, 'source.' + referenceExtension(task.source.blob)]];
       extraFields = task.type === 'lineart' ? [['task_type', 'lineart']] : [['task_type', 'edit'], ['instruction', task.instruction || '']];
     }
-    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); form.append('route', route); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
+    bodyFactory = () => { const form = new FormData(); for (const part of imageParts) form.append(...part); for (const [k, v] of extraFields) form.append(k, v); if (task.adminModel) form.append('admin_model', task.adminModel); form.append('route', route); form.append('model', s.model); form.append('size', size); if (aspectRatio) { form.append('image_size', '4k'); form.append('aspect_ratio', aspectRatio); } form.append('quality', 'high'); form.append('output_format', outputFormat); form.append('n', '1'); form.append('response_format', 'b64_json'); return form; };
     asyncPath = 'edits';
   }
   const submitted = await submitAsyncImageTask(base, asyncPath, bodyFactory, asyncHeaders, s.apiKey, task.clientRequestId);
@@ -1120,7 +1123,7 @@ async function runTask(spec, failedRecord = null) {
   await galleryReady;
   const id = failedRecord?.id || newId();
   if (runningTasks.has(id)) return;
-  const task = { ...spec, route: spec.route || getSettings().route, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
+  const task = { ...spec, adminModel: spec.adminModel ?? getSettings().adminModel, route: spec.route || getSettings().route, outputFormat: spec.outputFormat || getSettings().outputFormat, clientRequestId: spec.clientRequestId || newId(), params: spec.params ? { ...spec.params } : null, references: (spec.references || []).map(ref => ({ ...ref })) };
   const labels = TASK_LABELS[task.type];
   if (!labels) return toast('无法识别这个任务');
   const time = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -1297,7 +1300,53 @@ function addLog(record) {
   clearTimeout(refreshQuota.afterTaskTimer);
   refreshQuota.afterTaskTimer = setTimeout(() => refreshQuota({ silent: true }), 1000);
 }
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; if (!s.apiKey) setQuotaState('empty', null); }
+let adminCheckVersion = 0, adminCheckTimer = null, verifiedAdminKey = '';
+function hideAdminControls() {
+  $('adminSettingsEntry').hidden = true;
+  $('adminModelField').hidden = true;
+  $('adminModel').replaceChildren();
+  $('openAdminSettings').setAttribute('aria-expanded', 'false');
+  verifiedAdminKey = '';
+}
+async function checkAdminControls() {
+  const version = ++adminCheckVersion, key = $('apiKey').value.trim();
+  const chosenModel = $('adminModel').value || getSettings().adminModel;
+  hideAdminControls();
+  if (!key || !getSettings().taskApiBase) return false;
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(getSettings().taskApiBase + '/admin-access', {
+      headers: { Authorization: 'Bearer ' + key }, cache: 'no-store', signal: controller.signal
+    });
+    if (!response.ok) return false;
+    const access = await response.json();
+    if (version !== adminCheckVersion || $('apiKey').value.trim() !== key) return false;
+    if (access.admin === true) {
+      for (const model of access.models || []) {
+        if (!['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(model)) continue;
+        const option = document.createElement('option'), price = access.prices?.[model];
+        option.value = model;
+        option.textContent = model + ' · ' + (typeof price === 'number' ? '收费 ' + price : '价格待确认');
+        $('adminModel').append(option);
+      }
+      if (chosenModel && Array.from($('adminModel').options).some(option => option.value === chosenModel)) $('adminModel').value = chosenModel;
+      verifiedAdminKey = key; $('adminSettingsEntry').hidden = false;
+      return true;
+    }
+  } catch { /* Keep the ordinary route controls available when verification is unavailable. */ }
+  finally { clearTimeout(timer); }
+  return false;
+}
+$('openAdminSettings').onclick = () => {
+  if (!verifiedAdminKey || verifiedAdminKey !== $('apiKey').value.trim()) return hideAdminControls();
+  const field = $('adminModelField'); field.hidden = !field.hidden;
+  $('openAdminSettings').setAttribute('aria-expanded', String(!field.hidden));
+};
+$('apiKey').addEventListener('input', () => {
+  ++adminCheckVersion; clearTimeout(adminCheckTimer); hideAdminControls();
+  adminCheckTimer = setTimeout(checkAdminControls, 400);
+});
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -1309,7 +1358,22 @@ els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remov
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
 $('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
-$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey, route: $('generationRoute').value === 'line2' ? 'line2' : 'line1', outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
+$('saveSettings').onclick = async () => {
+  const apiKey = $('apiKey').value.trim(), button = $('saveSettings');
+  button.disabled = true;
+  try {
+    clearTimeout(adminCheckTimer);
+    const admin = verifiedAdminKey === apiKey && apiKey ? true : await checkAdminControls();
+    if ($('apiKey').value.trim() !== apiKey) return;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey,
+      adminModel: admin ? $('adminModel').value : '',
+      route: $('generationRoute').value === 'line2' ? 'line2' : 'line1',
+      outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' }));
+    fillSettings(); els.modal.classList.remove('open');
+    toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成');
+    refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks();
+  } finally { button.disabled = false; }
+};
 $('refreshQuota').onclick = () => refreshQuota();
 $('contextMenu').onclick = async e => {
   const action = e.target.closest('button')?.dataset.action, item = contextItem;

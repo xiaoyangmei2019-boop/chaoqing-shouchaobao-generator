@@ -3,7 +3,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { createAsyncImageServer } from './server.mjs';
@@ -20,7 +20,7 @@ const upstream = http.createServer(async (req, res) => {
   let jpegRequested = false;
   if (req.url.includes('/generations')) {
     const json = JSON.parse(requestBody.toString('utf8'));
-    assert(['gpt-image-2', 'gpt-image-2-official'].includes(json.model), 'new generations must never use the modification model');
+    assert(['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(json.model), 'only allowed models may be forwarded');
     forwardedModels.push(json.model);
     jpegRequested = json.output_format === 'jpeg';
     assert.equal(json.output_compression, jpegRequested ? 95 : undefined);
@@ -44,7 +44,8 @@ const upstream = http.createServer(async (req, res) => {
 });
 await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
 const upstreamPort = upstream.address().port, dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'image-task-test-'));
-const app = await createAsyncImageServer({ upstreamBase: `http://127.0.0.1:${upstreamPort}/v1`, dataDir, retentionMs: 60_000 });
+const adminSecret = 'test-admin-credential-only';
+const app = await createAsyncImageServer({ adminKeyHash: createHash('sha256').update(adminSecret).digest('hex'), upstreamBase: `http://127.0.0.1:${upstreamPort}/v1`, dataDir, retentionMs: 60_000 });
 await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${app.server.address().port}/api/image-tasks`, secret = 'test-secret-that-must-not-be-persisted';
 const headers = { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json', 'Idempotency-Key': randomUUID() };
@@ -228,6 +229,52 @@ for (const type of ['generation', 'lineart']) {
 }
 assert.equal(upstreamPosts, beforeInvalidRoute);
 
+// Admin capability is key-bound and ordinary credentials cannot forge a model override.
+for (const [key, expected] of [[secret, false], [adminSecret, true], ['', false]]) {
+  const access = await (await fetch(base + '/admin-access', { headers: { Authorization: `Bearer ${key}` } })).json();
+  assert.equal(access.admin, expected);
+  assert.equal(access.models.length, expected ? 3 : 0);
+  assert.deepEqual(access.prices, expected ? { 'gpt-image-2': 0.3, 'gpt-image-2-official': 0.8, 'gpt-image-2.5-sunburst': 0.3 } : {});
+  assert(!JSON.stringify(access).includes(adminSecret));
+}
+for (const mode of ['generation', 'lineart', 'reference', 'edit']) for (const model of ['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst']) {
+  let body;
+  const requestHeaders = { Authorization: `Bearer ${adminSecret}`, 'Idempotency-Key': randomUUID() };
+  if (mode === 'generation') {
+    requestHeaders['Content-Type'] = 'application/json'; body = JSON.stringify({ params: jpgParams, route: 'line1', admin_model: model });
+  } else {
+    body = new FormData(); body.append('task_type', mode); body.append('admin_model', model);
+    body.append('instruction', '管理员修改测试'); body.append('size', '1024x1024');
+    for (const [key, value] of Object.entries(jpgParams)) if (key !== 'size') body.append(key, value);
+    body.append('image', png, { filename: 'source.png', contentType: 'image/png' });
+  }
+  const result = await fetch(base + (mode === 'generation' ? '/generations' : '/edits'), { method: 'POST', body, headers: requestHeaders });
+  assert.equal(result.status, 202); const task = await result.json();
+  for (let i = 0; i < 80; i++) {
+    status = await (await fetch(base + '/' + task.id)).json();
+    if (['succeeded', 'failed'].includes(status.status)) break;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  assert.equal(status.status, 'succeeded');
+  assert.equal(forwardedModels[forwardedModels.length - 1], mode === 'edit' ? 'gpt-image-2.5-sunburst' : model);
+}
+const beforeUnauthorized = upstreamPosts;
+for (const mode of ['generation', 'lineart']) {
+  const requestHeaders = { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID() };
+  let body;
+  if (mode === 'generation') {
+    requestHeaders['Content-Type'] = 'application/json'; body = JSON.stringify({ params: jpgParams, admin_model: 'gpt-image-2.5-sunburst' });
+  } else {
+    body = new FormData(); body.append('task_type', mode); body.append('admin_model', 'gpt-image-2.5-sunburst');
+    body.append('image', png, { filename: 'source.png', contentType: 'image/png' });
+  }
+  assert.equal((await fetch(base + (mode === 'generation' ? '/generations' : '/edits'), { method: 'POST', headers: requestHeaders, body })).status, 403);
+}
+const invalidAdminModel = await fetch(base + '/generations', { method: 'POST', headers: { ...headers, Authorization: `Bearer ${adminSecret}`, 'Idempotency-Key': randomUUID() }, body: JSON.stringify({ params: jpgParams, admin_model: 'invalid-model' }) });
+assert.equal(invalidAdminModel.status, 400); assert.equal(upstreamPosts, beforeUnauthorized);
+const adminMetadata = (await Promise.all((await fsp.readdir(path.join(dataDir, 'tasks'))).map(name => fsp.readFile(path.join(dataDir, 'tasks', name), 'utf8')))).join('');
+assert(!adminMetadata.includes(adminSecret), 'admin credential must not be persisted with tasks');
+
 // 并发预占：MAX_ACTIVE_TOTAL=2 时同时提交 10 个任务，最多 2 个 202，其余 429
 const concDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'image-task-conc-'));
 const concurrencyApp = await createAsyncImageServer({ upstreamBase: `http://127.0.0.1:${upstreamPort}/v1`, dataDir: concDataDir, retentionMs: 60_000, maxActiveTotal: 2 });
@@ -242,4 +289,4 @@ await new Promise(resolve => setTimeout(resolve, 300));
 await concurrencyApp.close(); await fsp.rm(concDataDir, { recursive: true, force: true });
 
 await app.close(); await new Promise(resolve => upstream.close(resolve)); await fsp.rm(dataDir, { recursive: true, force: true });
-console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, two-route selection and edit-only Sunburst model routing, and concurrency slot reservation.');
+console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, two-route selection and edit-only Sunburst model routing, administrator authorization and model overrides, and concurrency slot reservation.');

@@ -24,7 +24,53 @@ function addLog(record) {
   clearTimeout(refreshQuota.afterTaskTimer);
   refreshQuota.afterTaskTimer = setTimeout(() => refreshQuota({ silent: true }), 1000);
 }
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; if (!s.apiKey) setQuotaState('empty', null); }
+let adminCheckVersion = 0, adminCheckTimer = null, verifiedAdminKey = '';
+function hideAdminControls() {
+  $('adminSettingsEntry').hidden = true;
+  $('adminModelField').hidden = true;
+  $('adminModel').replaceChildren();
+  $('openAdminSettings').setAttribute('aria-expanded', 'false');
+  verifiedAdminKey = '';
+}
+async function checkAdminControls() {
+  const version = ++adminCheckVersion, key = $('apiKey').value.trim();
+  const chosenModel = $('adminModel').value || getSettings().adminModel;
+  hideAdminControls();
+  if (!key || !getSettings().taskApiBase) return false;
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(getSettings().taskApiBase + '/admin-access', {
+      headers: { Authorization: 'Bearer ' + key }, cache: 'no-store', signal: controller.signal
+    });
+    if (!response.ok) return false;
+    const access = await response.json();
+    if (version !== adminCheckVersion || $('apiKey').value.trim() !== key) return false;
+    if (access.admin === true) {
+      for (const model of access.models || []) {
+        if (!['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(model)) continue;
+        const option = document.createElement('option'), price = access.prices?.[model];
+        option.value = model;
+        option.textContent = model + ' · ' + (typeof price === 'number' ? '收费 ' + price : '价格待确认');
+        $('adminModel').append(option);
+      }
+      if (chosenModel && Array.from($('adminModel').options).some(option => option.value === chosenModel)) $('adminModel').value = chosenModel;
+      verifiedAdminKey = key; $('adminSettingsEntry').hidden = false;
+      return true;
+    }
+  } catch { /* Keep the ordinary route controls available when verification is unavailable. */ }
+  finally { clearTimeout(timer); }
+  return false;
+}
+$('openAdminSettings').onclick = () => {
+  if (!verifiedAdminKey || verifiedAdminKey !== $('apiKey').value.trim()) return hideAdminControls();
+  const field = $('adminModelField'); field.hidden = !field.hidden;
+  $('openAdminSettings').setAttribute('aria-expanded', String(!field.hidden));
+};
+$('apiKey').addEventListener('input', () => {
+  ++adminCheckVersion; clearTimeout(adminCheckTimer); hideAdminControls();
+  adminCheckTimer = setTimeout(checkAdminControls, 400);
+});
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -36,7 +82,22 @@ els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remov
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
 $('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
-$('saveSettings').onclick = () => { const apiKey = $('apiKey').value.trim(); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey, route: $('generationRoute').value === 'line2' ? 'line2' : 'line1', outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' })); fillSettings(); els.modal.classList.remove('open'); toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成'); refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks(); };
+$('saveSettings').onclick = async () => {
+  const apiKey = $('apiKey').value.trim(), button = $('saveSettings');
+  button.disabled = true;
+  try {
+    clearTimeout(adminCheckTimer);
+    const admin = verifiedAdminKey === apiKey && apiKey ? true : await checkAdminControls();
+    if ($('apiKey').value.trim() !== apiKey) return;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey,
+      adminModel: admin ? $('adminModel').value : '',
+      route: $('generationRoute').value === 'line2' ? 'line2' : 'line1',
+      outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' }));
+    fillSettings(); els.modal.classList.remove('open');
+    toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成');
+    refreshQuota({ silent: !apiKey }); if (apiKey) resumePendingTasks();
+  } finally { button.disabled = false; }
+};
 $('refreshQuota').onclick = () => refreshQuota();
 $('contextMenu').onclick = async e => {
   const action = e.target.closest('button')?.dataset.action, item = contextItem;

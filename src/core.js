@@ -18,6 +18,7 @@ function getSettings() {
   const route = saved.route === 'line2' ? 'line2' : 'line1';
   return { apiBase: 'https://vip.aittco.com/v1', apiPath: '/images/generations',
     taskApiBase: location.protocol === 'file:' ? '' : location.origin + '/api/image-tasks',
+    adminModel: ['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(saved.adminModel) ? saved.adminModel : '',
     route, model: route === 'line2' ? 'gpt-image-2-official' : 'gpt-image-2', points: 3,
     outputFormat: ['png', 'jpeg'].includes(saved.outputFormat) ? saved.outputFormat : defaultOutputFormat(),
     apiKey: typeof saved.apiKey === 'string' ? saved.apiKey : '' };

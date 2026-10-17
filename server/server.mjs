@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import Busboy from 'busboy';
@@ -302,9 +302,23 @@ export async function createAsyncImageServer(options = {}) {
   const taskDir = path.join(dataDir, 'tasks'), resultDir = path.join(dataDir, 'results');
   const upstreamBase = String(options.upstreamBase || process.env.UPSTREAM_IMAGE_BASE || 'https://vip.aittco.com/v1').replace(/\/$/, '');
   const upstreamModel = String(options.upstreamModel || process.env.UPSTREAM_IMAGE_MODEL || 'gpt-image-2');
-  function routeModel(route, taskType) {
+  // Only a one-way fingerprint is stored. The credential itself is never embedded.
+  const adminKeyHash = String(options.adminKeyHash || process.env.ADMIN_API_KEY_SHA256 || '6d9a196584c583d679cb10b200bd4054c66885ebe696e916417e6016e4fc8024');
+  const adminModels = ['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'];
+  const sunburstPrice = Number(process.env.ADMIN_SUNBURST_PRICE);
+  const adminPrices = { 'gpt-image-2': 0.3, 'gpt-image-2-official': 0.8, 'gpt-image-2.5-sunburst': process.env.ADMIN_SUNBURST_PRICE != null && Number.isFinite(sunburstPrice) && sunburstPrice >= 0 ? sunburstPrice : 0.3 };
+  function isAdmin(key) {
+    if (!key || !/^[0-9a-f]{64}$/i.test(adminKeyHash)) return false;
+    return timingSafeEqual(createHash('sha256').update(key).digest(), Buffer.from(adminKeyHash, 'hex'));
+  }
+  function routeModel(route, taskType, apiKey, adminModel) {
     if (route != null && !['line1', 'line2'].includes(route)) throw badParam('生成线路无效，请重新选择线路');
+    if (adminModel) {
+      if (!isAdmin(apiKey)) throw Object.assign(new Error('当前密钥没有管理员权限'), { statusCode: 403 });
+      if (!adminModels.includes(adminModel)) throw badParam('管理员模型选择无效');
+    }
     if (taskType === 'edit') return 'gpt-image-2.5-sunburst';
+    if (adminModel) return adminModel;
     return route === 'line2' ? 'gpt-image-2-official' : upstreamModel;
   }
   const allowedOrigin = String(options.allowedOrigin || process.env.FRONTEND_ORIGIN || '').replace(/\/$/, '');
@@ -435,7 +449,7 @@ export async function createAsyncImageServer(options = {}) {
         const params = validateParams(body.params || {});
         const aspectRatio = params.size === '1.4:1' ? '17:12' : '12:17';
         upstreamRequest = {
-          model: routeModel(body.route, 'generation'),
+          model: routeModel(body.route, 'generation', apiKey, body.admin_model),
           prompt: buildPrompt(params, false).slice(0, 100000),
           size: aspectRatio === '17:12' ? '3424x2416' : '2416x3424',
           image_size: '4k',
@@ -469,7 +483,7 @@ export async function createAsyncImageServer(options = {}) {
         }
         // Only user-requested image modifications use Sunburst. Line art and
         // reference generation share this endpoint but use the selected route.
-        outgoing.append('model', routeModel(incoming.fields.get('route'), taskType));
+        outgoing.append('model', routeModel(incoming.fields.get('route'), taskType, apiKey, incoming.fields.get('admin_model')));
         outgoing.append('prompt', prompt.slice(0, 100000));
         outgoing.append('size', validateSize(incoming.fields.get('size') || '2416x3424'));
         const aspectRatio = String(incoming.fields.get('aspect_ratio') || '');
@@ -521,6 +535,10 @@ export async function createAsyncImageServer(options = {}) {
       const origin = String(req.headers.origin || '').replace(/\/$/, ''), expectedOrigin = allowedOrigin || requestOrigin(req);
       if (origin && origin !== expectedOrigin) return sendJson(res, 403, { error: '不允许的网页来源' });
       const url = new URL(req.url, requestOrigin(req));
+      if (req.method === 'GET' && url.pathname === '/api/image-tasks/admin-access') {
+        const admin = isAdmin(bearer(req));
+        return sendJson(res, 200, { admin, models: admin ? adminModels : [], prices: admin ? adminPrices : {} });
+      }
       if (req.method === 'GET' && url.pathname === '/api/image-tasks/health') return sendJson(res, 200, { ok: true, active: activeTotal });
       if (req.method === 'POST' && url.pathname === '/api/image-tasks/generations') return await accept(req, res, 'generation');
       if (req.method === 'POST' && url.pathname === '/api/image-tasks/edits') return await accept(req, res, 'edit');
