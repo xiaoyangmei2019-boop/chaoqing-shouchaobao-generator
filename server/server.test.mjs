@@ -45,10 +45,24 @@ const upstream = http.createServer(async (req, res) => {
 await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
 const upstreamPort = upstream.address().port, dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'image-task-test-'));
 const adminSecret = 'test-admin-credential-only';
-const app = await createAsyncImageServer({ adminKeyHash: createHash('sha256').update(adminSecret).digest('hex'), upstreamBase: `http://127.0.0.1:${upstreamPort}/v1`, dataDir, retentionMs: 60_000 });
+const versionFile = path.join(dataDir, 'frontend-version.json');
+await fsp.writeFile(versionFile, JSON.stringify({ version: 'v-111111111111' }));
+const app = await createAsyncImageServer({ frontendVersionFile: versionFile, adminKeyHash: createHash('sha256').update(adminSecret).digest('hex'), upstreamBase: `http://127.0.0.1:${upstreamPort}/v1`, dataDir, retentionMs: 60_000 });
 await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${app.server.address().port}/api/image-tasks`, secret = 'test-secret-that-must-not-be-persisted';
 const headers = { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json', 'Idempotency-Key': randomUUID() };
+
+// The manifest is uncached and read afresh after each deployment.
+for (const version of ['v-111111111111', 'v-222222222222']) {
+  await fsp.writeFile(versionFile, JSON.stringify({ version }));
+  const response = await fetch(base + '/version?_t=' + Date.now());
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await response.json(), { version });
+}
+await fsp.writeFile(versionFile, '{bad json');
+assert.equal((await fetch(base + '/version')).status, 503);
+await fsp.writeFile(versionFile, JSON.stringify({ version: 'v-222222222222' }));
 
 function rawPost(url, headers, body) {
   return new Promise((resolve, reject) => {

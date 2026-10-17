@@ -539,6 +539,14 @@ export async function createAsyncImageServer(options = {}) {
         const admin = isAdmin(bearer(req));
         return sendJson(res, 200, { admin, models: admin ? adminModels : [], prices: admin ? adminPrices : {} });
       }
+      if (req.method === 'GET' && url.pathname === '/api/image-tasks/version') {
+        // Read on each check so publishing a new manifest is visible without a restart.
+        try {
+          const manifest = JSON.parse(await fsp.readFile(options.frontendVersionFile || process.env.FRONTEND_VERSION_FILE || path.join(here, 'frontend-version.json'), 'utf8'));
+          if (!/^v-[0-9a-f]{12}$/.test(manifest.version)) throw new Error('invalid version');
+          return sendJson(res, 200, { version: manifest.version });
+        } catch { return sendJson(res, 503, { error: '版本信息暂不可用' }); }
+      }
       if (req.method === 'GET' && url.pathname === '/api/image-tasks/health') return sendJson(res, 200, { ok: true, active: activeTotal });
       if (req.method === 'POST' && url.pathname === '/api/image-tasks/generations') return await accept(req, res, 'generation');
       if (req.method === 'POST' && url.pathname === '/api/image-tasks/edits') return await accept(req, res, 'edit');

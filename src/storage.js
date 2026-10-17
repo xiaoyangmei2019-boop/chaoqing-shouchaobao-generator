@@ -219,5 +219,5 @@ const GalleryStore = (() => {
     for (const id of ids) pins.set(id, (pins.get(id) || 0) + 1);
     return () => { for (const id of ids) { const n = (pins.get(id) || 1) - 1; n ? pins.set(id, n) : pins.delete(id); } };
   }
-  return { open, list, save, remove, original, preview, retry, summary, retain, close() { connection?.close(); connection = null; ready = null; } };
+  return { open, list, save, remove, original, preview, retry, summary, retain, hasUnsavedRecords: () => transient.size > 0, close() { connection?.close(); connection = null; ready = null; } };
 })();

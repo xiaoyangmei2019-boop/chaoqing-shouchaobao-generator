@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +16,7 @@ const modules = [
   'references.js',
   'tasks.js',
   'events.js',
+  'updates.js',
 ];
 
 let html = fs.readFileSync(target, 'utf8');
@@ -34,5 +36,11 @@ const design = '<style id="workbench-design">\n' + fs.readFileSync(path.join(sou
 html = /<style id="workbench-design">[\s\S]*?<\/style>/.test(html)
   ? html.replace(/<style id="workbench-design">[\s\S]*?<\/style>/, design)
   : html.replace('</head>', design + '\n</head>');
+// Hash the complete artifact without its own version tag; unchanged builds stay stable.
+html = html.replace(/<meta name="app-version" content="[^"]*">\n?/g, '');
+const digest = createHash('sha256').update(html).digest('hex').slice(0, 12);
+const version = 'v-' + digest;
+html = html.replace('</head>', `<meta name="app-version" content="${version}">\n</head>`);
 fs.writeFileSync(target, html);
+fs.writeFileSync(path.join(root, 'server', 'frontend-version.json'), JSON.stringify({ version }) + '\n');
 console.log(`已生成 index.html（${Buffer.byteLength(html)} 字节，${modules.length} 个源码模块）。`);

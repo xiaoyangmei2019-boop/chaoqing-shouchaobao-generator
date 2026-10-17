@@ -79,7 +79,14 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 @media(max-width:780px){.settings-grid .field input,.settings-grid .field select{font-size:16px}.failed-card .image-box{min-height:250px}}
 @media(max-width:360px){.topbar{padding:20px 16px 16px}.gallery-wrap{padding:0 16px 28px}.failed-card .image-box{padding:12px}.failed-card.soft .image-box{padding:12px}}
 
+.app-update{position:fixed;bottom:24px;right:24px;z-index:280;display:grid;gap:14px;width:min(420px,calc(100vw - 32px));padding:20px;border:1px solid #9ab7a8;border-radius:12px;background:#fff;box-shadow:0 12px 40px #213d3526;color:var(--ink)}
+.app-update strong{font-size:16px}.app-update p{margin:8px 0 0;font-size:13px;line-height:1.7;color:var(--muted)}
+.app-update-actions{display:flex;gap:10px;justify-content:flex-end}.app-update button{min-height:42px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:13px}
+.app-update #updateNow{background:var(--green);color:#fff;border-color:var(--green)}.app-update #updateNow:disabled{opacity:.6;cursor:wait}
+@media(max-width:780px){.app-update{bottom:max(16px,env(safe-area-inset-bottom));right:16px;padding:16px}}
+
 </style>
+<meta name="app-version" content="v-c3b2a569c6fd">
 </head>
 <body>
 <main class="app">
@@ -105,6 +112,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
   <div class="gallery-wrap"><div id="gallery" class="gallery"><div class="empty"><div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div></div></div>
  </section>
 </main>
+<aside id="appUpdate" class="app-update" role="status" aria-live="polite" hidden><div><strong>发现新版本</strong><p id="appUpdateMessage">刷新即可使用最新功能，本地图库和设置会保留。</p></div><div class="app-update-actions"><button id="updateLater" type="button">稍后</button><button id="updateNow" type="button">刷新更新</button></div></aside>
 <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="设置">
  <div class="modal">
   <div class="modal-head"><h3>设置与生成记录</h3><button id="closeSettings" class="close" type="button" aria-label="关闭">×</button></div>
@@ -530,7 +538,7 @@ const GalleryStore = (() => {
     for (const id of ids) pins.set(id, (pins.get(id) || 0) + 1);
     return () => { for (const id of ids) { const n = (pins.get(id) || 1) - 1; n ? pins.set(id, n) : pins.delete(id); } };
   }
-  return { open, list, save, remove, original, preview, retry, summary, retain, close() { connection?.close(); connection = null; ready = null; } };
+  return { open, list, save, remove, original, preview, retry, summary, retain, hasUnsavedRecords: () => transient.size > 0, close() { connection?.close(); connection = null; ready = null; } };
 })();
 
 
@@ -1427,6 +1435,94 @@ loadParams(); fillSettings(); renderLogs(); renderThemeHistory();
 galleryReady = renderGallery();
 galleryReady.then(() => resumePendingTasks()).catch(error => toast('图片缓存暂不可用：' + error.message));
 refreshQuota({ silent: true });
+
+
+// ===== updates.js =====
+// A running page can discover later deployments without clearing site data.
+const APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || '';
+const VERSION_CHECK_INTERVAL = 24 * 60 * 60 * 1000, VERSION_CHECK_KEY = 'tonghua-app-version-check-v1';
+let availableVersion = '', deferredVersion = '', deferredUntil = 0, checkingVersion = false, versionCheckTimer = null;
+function readVersionCheck() {
+  try { return JSON.parse(localStorage.getItem(VERSION_CHECK_KEY) || '{}') || {}; } catch { return {}; }
+}
+function writeVersionCheck(status) {
+  try { localStorage.setItem(VERSION_CHECK_KEY, JSON.stringify(status)); } catch {}
+}
+let lastVersionCheck = readVersionCheck();
+function scheduleVersionCheck(delay = VERSION_CHECK_INTERVAL) {
+  clearTimeout(versionCheckTimer);
+  versionCheckTimer = setTimeout(checkAppVersion, Math.max(1000, delay));
+}
+function updateIsBusy() { return runningTasks.size > 0 || localLocks.size > 0 || retryLocks.size > 0; }
+function renderUpdateNotice() {
+  const panel = $('appUpdate');
+  panel.hidden = !availableVersion || availableVersion === APP_VERSION
+    || (availableVersion === deferredVersion && Date.now() < deferredUntil);
+  if (panel.hidden) return;
+  const busy = updateIsBusy();
+  $('appUpdateMessage').textContent = busy
+    ? '有新版本可用，当前任务仍在处理中，请完成后再更新。'
+    : '刷新即可使用最新功能，本地图库和设置会保留。';
+  $('updateNow').disabled = busy;
+  $('updateNow').textContent = busy ? '任务处理中' : '刷新更新';
+}
+async function checkAppVersion() {
+  if (!APP_VERSION || location.protocol === 'file:' || checkingVersion) return;
+  const stored = readVersionCheck();
+  if (Number(stored.checkedAt) > Number(lastVersionCheck.checkedAt || 0)) lastVersionCheck = stored;
+  const now = Date.now(), checkedAt = Number(lastVersionCheck.checkedAt) || 0;
+  if (checkedAt > 0 && checkedAt <= now && now - checkedAt < VERSION_CHECK_INTERVAL) {
+    if (/^v-[0-9a-f]{12}$/.test(lastVersionCheck.version || '')) {
+      // A manually refreshed newer page must not offer an older cached manifest as an update.
+      availableVersion = lastVersionCheck.pageVersion === APP_VERSION && lastVersionCheck.version !== APP_VERSION ? lastVersionCheck.version : '';
+      deferredVersion = lastVersionCheck.deferredVersion || '';
+      deferredUntil = Number(lastVersionCheck.deferredUntil) || 0;
+      renderUpdateNotice();
+    }
+    scheduleVersionCheck(VERSION_CHECK_INTERVAL - (now - checkedAt));
+    return;
+  }
+  if (document.hidden || !navigator.onLine) { scheduleVersionCheck(); return; }
+  checkingVersion = true;
+  // Record attempts too, so a failing endpoint cannot cause frequent focus/reload requests.
+  lastVersionCheck = { ...lastVersionCheck, checkedAt: now, pageVersion: APP_VERSION };
+  writeVersionCheck(lastVersionCheck);
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(getSettings().taskApiBase + '/version?_t=' + Date.now(), {
+      cache: 'no-store', signal: controller.signal
+    });
+    if (!response.ok) return;
+    const manifest = await response.json();
+    if (!/^v-[0-9a-f]{12}$/.test(manifest.version)) return;
+    lastVersionCheck = { ...lastVersionCheck, version: manifest.version };
+    writeVersionCheck(lastVersionCheck);
+    availableVersion = manifest.version === APP_VERSION ? '' : manifest.version;
+    renderUpdateNotice();
+  } catch { /* Offline/version-endpoint failures must not interrupt image tasks. */ }
+  finally { clearTimeout(timer); checkingVersion = false; scheduleVersionCheck(); }
+}
+$('updateLater').onclick = () => {
+  deferredVersion = availableVersion; deferredUntil = Date.now() + VERSION_CHECK_INTERVAL;
+  lastVersionCheck = { ...lastVersionCheck, deferredVersion, deferredUntil }; writeVersionCheck(lastVersionCheck);
+  renderUpdateNotice();
+};
+$('updateNow').onclick = () => {
+  if (!availableVersion || updateIsBusy()) { renderUpdateNotice(); return; }
+  if (GalleryStore.hasUnsavedRecords()) { toast('有图片或记录尚未保存到本地，请先下载图片或处理临时记录后再更新'); return; }
+  if ((uploadedReferences.length || imageEditDrafts.size || imageEditCurrentItem)
+      && !confirm('刷新会清除尚未提交的参考图或修改草稿，确定现在更新吗？')) return;
+  saveParams();
+  const url = new URL(location.href);
+  url.searchParams.set('_app_version', availableVersion);
+  location.replace(url.href);
+};
+scheduleVersionCheck(1500);
+setInterval(() => { if (availableVersion && !document.hidden) renderUpdateNotice(); }, 3000);
+window.addEventListener('online', checkAppVersion);
+window.addEventListener('focus', checkAppVersion);
+window.addEventListener('pageshow', checkAppVersion);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAppVersion(); });
 
 })();
 </script>
