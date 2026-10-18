@@ -64,6 +64,27 @@ try {
         await requestTask({ type, params, instruction: '测试修改', source: { blob: restored }, references: [{ blob: restored }] }, { ...settings, outputFormat: 'jpeg', route: 'line2' });
       }
       await requestTask({ type: 'lineart', outputFormat: 'png', route: 'line1', source: { blob: restored } }, { ...settings, outputFormat: 'jpeg', route: 'line2' });
+      // Simulate a gateway ignoring JPEG and returning PNG, including restored tasks.
+      const recovered = await requestTask({ type: 'generation', serverTaskId: 'already-billed', outputFormat: 'jpeg' }, settings);
+      const recoveredBytes = new Uint8Array(await recovered.blob.arrayBuffer());
+      const recoveredSize = await blobDimensions(recovered.blob);
+      const sameJPEG = await normalizeTaskOutput({ blob: recovered.blob }, 'jpeg');
+      const samePNG = await normalizeTaskOutput({ blob: restored }, 'png');
+      const jpegSaved = await GalleryStore.save({ id: 'converted-jpeg', kind: 'generation', blob: recovered.blob });
+      GalleryStore.close();
+      const jpegReloaded = await GalleryStore.original(jpegSaved.item);
+      const convertRun = ImageWork.run;
+      ImageWork.run = async () => { throw new Error('simulated encoding failure'); };
+      let conversionFailure;
+      try { conversionFailure = await requestTask({ type: 'generation', serverTaskId: 'already-billed', outputFormat: 'jpeg' }, settings); }
+      finally { ImageWork.run = convertRun; }
+      const jpegChecks = {
+        mime: recovered.blob.type, signature: [recoveredBytes[0], recoveredBytes[1]], size: recoveredSize,
+        noReencode: sameJPEG.blob === recovered.blob, pngUnchanged: samePNG.blob === restored,
+        persistedMIME: jpegReloaded.type, metadataMIME: jpegSaved.item.mimeType,
+        failureKeptOriginal: conversionFailure.blob === restored,
+        failureWarning: conversionFailure.formatWarning
+      };
       const pending = await GalleryStore.save({ id: 'format-pending', kind: 'pending' }, { type: 'generation', params, outputFormat: 'jpeg', route: 'line2' });
       GalleryStore.close();
       const restoredRoute = (await GalleryStore.retry(pending.item.id)).route;
@@ -90,13 +111,21 @@ try {
       return { cached: saved.cached, size, thumbnail: thumb.blob.size, pale: pale.blob.size,
         byteStored: row.buffer instanceof ArrayBuffer && !row.blob,
         bytesMatch: Array.from(new Uint8Array(bytes)).join() === Array.from(new Uint8Array(await blob.arrayBuffer())).join(),
-        brokenMessage, unreadableMessage, failures, submissions, fallbackRead, requestedFormats, restoredFormat, requestedRoutes, restoredRoute };
+        brokenMessage, unreadableMessage, failures, submissions, fallbackRead, requestedFormats, restoredFormat, requestedRoutes, restoredRoute, jpegChecks };
     });
     assert.equal(result.submissions, 5, "invalid image must fail before submission");
     assert.deepEqual(result.requestedFormats, ["png", "jpeg", "jpeg", "jpeg", "png"]);
     assert.equal(result.restoredFormat, "jpeg");
     assert.deepEqual(result.requestedRoutes, ["line1", "line2", "line2", "line2", "line1"]);
     assert.equal(result.restoredRoute, "line2");
+    assert.equal(result.jpegChecks.mime, 'image/jpeg');
+    assert.deepEqual(result.jpegChecks.signature, [255,216]);
+    assert.deepEqual(result.jpegChecks.size, { width:96, height:128 });
+    assert(result.jpegChecks.noReencode && result.jpegChecks.pngUnchanged);
+    assert.equal(result.jpegChecks.persistedMIME, 'image/jpeg');
+    assert.equal(result.jpegChecks.metadataMIME, 'image/jpeg');
+    assert(result.jpegChecks.failureKeptOriginal);
+    assert.match(result.jpegChecks.failureWarning, /JPG 转换失败.*不要重复生成/);
     assert(result.fallbackRead);
     assert.equal(result.cached, true);
     assert.deepEqual(result.size, { width: 96, height: 128 });
@@ -111,5 +140,5 @@ try {
     assert(!result.failures[1].message.includes('不足'));
     await page.close();
   }
-  console.log('Image compatibility tests passed: worker and DOM fallback, imported/legacy Blob persistence, multipart byte integrity, invalid images, accurate save errors.');
+  console.log('Image compatibility tests passed: worker and DOM fallback, imported/legacy Blob persistence, multipart byte integrity, invalid images, accurate save errors, JPEG fallback/signature/dimensions/persistence/recovery without rebilling.');
 } finally { await browser.close(); }

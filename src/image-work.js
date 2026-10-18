@@ -67,9 +67,10 @@ async function transformImage(job, preferDOM = false) {
     const scale = Math.min(width / sourceWidth, height / sourceHeight);
     const w = sourceWidth * scale, h = sourceHeight * scale;
     ctx.drawImage(bitmap, (width - w) / 2, (height - h) / 2, w, h);
-    const type = job.type === 'thumbnail' ? 'image/webp' : job.type === 'pale' ? 'image/jpeg' : 'image/png';
-    const quality = job.type === 'thumbnail' ? .9 : 1;
+    const type = job.type === 'thumbnail' ? 'image/webp' : ['pale', 'jpeg'].includes(job.type) ? 'image/jpeg' : 'image/png';
+    const quality = job.type === 'thumbnail' ? .9 : job.type === 'jpeg' ? .95 : 1;
     const blob = canvas.convertToBlob ? await canvas.convertToBlob({ type, quality }) : await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('图片导出失败')), type, quality));
+    if (job.type === 'jpeg' && blob.type !== 'image/jpeg') throw new Error('浏览器暂不支持 JPG 导出');
     return { blob, width, height, sourceWidth, sourceHeight, aspectRatio: width / height };
   } finally {
     source.close();

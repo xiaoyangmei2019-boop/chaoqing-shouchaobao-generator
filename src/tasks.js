@@ -25,16 +25,26 @@ async function hydrateTask(task) {
   for (const ref of task.references || []) hydrated.references.push({ ...ref, blob: await GalleryStore.original(ref) });
   return hydrated;
 }
+async function normalizeTaskOutput(result, requestedFormat) {
+  if (requestedFormat !== 'jpeg' || result.blob.type === 'image/jpeg') return result;
+  try {
+    const converted = await ImageWork.run({ type: 'jpeg', blob: result.blob });
+    return { ...result, blob: converted.blob };
+  } catch (error) {
+    console.warn('JPG 转换失败，保留已生成原图', error);
+    return { ...result, formatWarning: '图片已生成，但 JPG 转换失败，已保留原格式图片；请下载原图，不要重复生成' };
+  }
+}
 async function requestTask(task, s, onServerTask = null) {
   if (!s.taskApiBase) throw new Error('生图需要通过部署后的网站访问，请勿用本地文件直接打开');
   const base = s.taskApiBase.replace(/\/$/, '');
+  const outputFormat = (task.outputFormat || s.outputFormat) === 'jpeg' ? 'jpeg' : 'png';
   // 恢复任务：已有 serverTaskId，直接查询原任务结果，绝不重新 POST（避免重复扣费）。
   if (task.serverTaskId) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
-    return { blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId };
+    return normalizeTaskOutput({ blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId }, outputFormat);
   }
   const route = (task.route || s.route) === 'line2' ? 'line2' : 'line1';
-  const outputFormat = (task.outputFormat || s.outputFormat) === 'jpeg' ? 'jpeg' : 'png';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
@@ -62,7 +72,7 @@ async function requestTask(task, s, onServerTask = null) {
   if (onServerTask) await onServerTask(submitted.id);
   // 保留模型返回原图，不做缩放补白，不改变构图。
   const result = await pollAsyncImageTask(base, submitted.id);
-  return { blob: result.blob, points: result.points || s.points, serverTaskId: submitted.id };
+  return normalizeTaskOutput({ blob: result.blob, points: result.points || s.points, serverTaskId: submitted.id }, outputFormat);
 }
 async function runTask(spec, failedRecord = null) {
   if (!validKey()) return;
@@ -141,7 +151,8 @@ async function runTask(spec, failedRecord = null) {
   playTaskSound(true);
   // Download/cache problems must never resubmit a successful, already billed model task.
   await download({ ...saved.item, blob: output.blob });
-  toast(saved.cached ? '生成成功，图片已自动下载' : '图片已生成并下载；' + cacheFailureMessage(saved));
+  const successMessage = output.formatWarning || '生成成功，图片已自动下载';
+  toast(saved.cached ? successMessage : successMessage + '；' + cacheFailureMessage(saved));
 }
 async function resumePendingTasks() {
   if (!getSettings().taskApiBase || !getSettings().apiKey) return;
