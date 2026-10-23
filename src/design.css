@@ -53,3 +53,15 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .app-update-actions{display:flex;gap:10px;justify-content:flex-end}.app-update button{min-height:42px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:13px}
 .app-update #updateNow{background:var(--green);color:#fff;border-color:var(--green)}.app-update #updateNow:disabled{opacity:.6;cursor:wait}
 @media(max-width:780px){.app-update{bottom:max(16px,env(safe-area-inset-bottom));right:16px;padding:16px}}
+
+/* Approved engine selector dialog. */
+.engine-dialog{width:min(480px,100%);grid-template-rows:auto minmax(0,1fr)}
+.engine-dialog-body{padding:6px 24px 24px;overflow:auto}
+.engine-dialog .field{margin-top:16px}.engine-dialog select{font-size:15px;height:48px;background:#fff}
+.engine-explanation{margin-top:20px;padding:16px;border-radius:10px;background:#f3f7f4;border:1px solid var(--line)}
+.engine-explanation p{margin:0;font-size:13px;line-height:1.8}.engine-explanation p+p{margin-top:15px}
+.engine-explanation strong{display:block;color:var(--ink);font-size:13px;font-weight:650}
+.engine-explanation span{display:block;margin-top:3px;color:var(--muted)}
+.engine-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px}
+.engine-dialog-footer>span{font-size:12px;color:var(--muted)}.engine-dialog-footer .save-settings{margin:0;min-height:44px;padding:0 24px}
+@media(max-width:780px){.engine-dialog-body{padding:4px 20px 20px}.engine-dialog select{font-size:16px}}

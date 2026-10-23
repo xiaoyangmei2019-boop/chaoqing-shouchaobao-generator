@@ -312,14 +312,14 @@ export async function createAsyncImageServer(options = {}) {
     return timingSafeEqual(createHash('sha256').update(key).digest(), Buffer.from(adminKeyHash, 'hex'));
   }
   function routeModel(route, taskType, apiKey, adminModel) {
-    if (route != null && !['line1', 'line2'].includes(route)) throw badParam('生成线路无效，请重新选择线路');
+    if (route != null && !['line1', 'line2', 'line3'].includes(route)) throw badParam('生成线路无效，请重新选择线路');
     if (adminModel) {
       if (!isAdmin(apiKey)) throw Object.assign(new Error('当前密钥没有管理员权限'), { statusCode: 403 });
       if (!adminModels.includes(adminModel)) throw badParam('管理员模型选择无效');
     }
     if (taskType === 'edit') return 'gpt-image-2.5-sunburst';
     if (adminModel) return adminModel;
-    return route === 'line2' ? 'gpt-image-2-official' : upstreamModel;
+    return route === 'line3' ? 'gpt-image-2-official' : route === 'line2' ? 'gpt-image-2-svip' : upstreamModel;
   }
   const allowedOrigin = String(options.allowedOrigin || process.env.FRONTEND_ORIGIN || '').replace(/\/$/, '');
   const retentionMs = Number(options.retentionMs || process.env.TASK_RETENTION_MS || 24 * 60 * 60 * 1000);
@@ -344,7 +344,7 @@ export async function createAsyncImageServer(options = {}) {
         if (!task?.id || !task.clientRequestId) continue;
         if (task.status === 'queued' || task.status === 'running') {
           task.status = 'failed'; task.updatedAt = Date.now();
-          task.error = '异步服务器在任务执行期间重启，无法确认上游结果。请先核对中转扣费记录，不要立即重复提交。';
+          task.error = '异步服务器在任务执行期间重启，暂时无法确认生成结果。请先核对账户扣费记录，不要立即重复提交。';
           await persist(task);
         }
         tasks.set(task.id, task); byClientRequest.set(task.clientRequestId, task.id);
@@ -399,7 +399,7 @@ export async function createAsyncImageServer(options = {}) {
       });
       return await decodeUpstream(response, task);
     } catch (error) {
-      if (error?.name === 'AbortError') throw new Error('上游生图超过20分钟，后台已停止等待；请核对中转记录');
+      if (error?.name === 'AbortError') throw new Error('图片生成超过20分钟，后台已停止等待；请核对任务状态和扣费记录');
       throw error;
     } finally { clearTimeout(timer); }
   }

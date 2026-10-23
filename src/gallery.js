@@ -18,7 +18,7 @@ async function loadCardThumbnail(card) {
     const blob = await GalleryStore.preview(state.assetId);
     if (card.isConnected && state.visible && epoch === state.epoch) ImageURLs.set(state.img, blob);
   } catch (error) {
-    if (card.isConnected && epoch === state.epoch) { state.img.alt = '预览暂不可用，可右键下载原图'; console.warn(error); }
+    if (card.isConnected && epoch === state.epoch) { state.img.alt = mobileActionMode() ? '预览暂不可用，可点击图片保存原图到设备' : '预览暂不可用，可右键下载原图'; console.warn(error); }
   }
 }
 function disposeCard(card) {
@@ -30,6 +30,25 @@ function disposeCard(card) {
 }
 function mobileActionMode() {
   return innerWidth <= 780 || matchMedia('(hover: none), (pointer: coarse)').matches;
+}
+function referenceEmptyText() {
+  return mobileActionMode()
+    ? '可在这里上传，或点击“我的作品”中的图片设为参考图，最多 10 张。'
+    : '可在这里上传，或右键点击“我的作品”中的图片设为参考图，最多 10 张。';
+}
+function updateDeviceCopy() {
+  const stacked = innerWidth <= 780, touch = mobileActionMode();
+  const title = els.gallery.querySelector('.empty h3');
+  const description = els.gallery.querySelector('.empty p');
+  if (title) title.textContent = stacked ? '从上方开始创作' : '从左侧开始创作';
+  if (description) description.textContent = stacked
+    ? '在上方选择画面参数、填写主题内容。生成后点击图片，可预览或保存到设备。'
+    : '在左侧选择画面参数、填写主题内容。生成后可双击预览，右键下载到电脑。';
+  const reference = els.referenceList.querySelector('.reference-empty');
+  if (reference) reference.textContent = referenceEmptyText();
+  document.querySelector('.topbar p').textContent = touch
+    ? '点击图片可预览或保存到设备；本页面只展示最近 50 张。'
+    : '生成的图片会自动下载，也可将本地图片拖入“我的作品”；本页面只展示最近 50 张。';
 }
 function bindCardActions(card, item) {
   card.tabIndex = 0;
@@ -189,6 +208,7 @@ function showEmptyIfNeeded() {
     div.innerHTML = '<div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div>';
     els.gallery.append(div);
   }
+  updateDeviceCopy();
 }
 async function renderGallery() {
   const all = await GalleryStore.list(), fragment = document.createDocumentFragment();
@@ -207,7 +227,7 @@ async function deleteImageItem(item) {
     await GalleryStore.remove(item.id);
     const before = visiblePositions(galleryCards.get(String(item.id)));
     removeGalleryRecord(item.id); animatePositions(before); showEmptyIfNeeded();
-    toast(item.kind === 'failed' ? '失败记录已删除' : item.kind === 'pending' ? '本地任务记录已删除；服务器后台任务不会取消' : '图片已从右侧历史删除');
+    toast(item.kind === 'failed' ? '失败记录已删除' : item.kind === 'pending' ? '本地任务记录已删除；服务器后台任务不会取消' : '图片已从“我的作品”删除');
   } catch (error) { toast(error.message || '删除失败'); }
 }
 let highlightedCard = null;

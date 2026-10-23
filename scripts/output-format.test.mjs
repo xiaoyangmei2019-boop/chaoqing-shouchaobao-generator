@@ -15,27 +15,57 @@ try {
   await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), mobile ? 'jpeg' : 'png');
   assert.equal(await page.locator('#generationRoute').inputValue(), 'line1');
-  assert.equal(await page.locator('#generationRoute').innerText(), '线路一 · 收费 0.3\n线路二 · 收费 0.8 · 更加顺畅');
+  assert.deepEqual(await page.locator('#generationRoute option').allTextContents(), ['灵绘 Lite｜0.3元/张', '灵绘 Pro｜0.3元/张', '灵绘 Max｜0.8元/张']);
   assert(!(await page.locator('#modal').innerText()).includes('gpt-image'));
   // Old settings with only a key inherit the device default after upgrading.
   await page.evaluate(() => localStorage.setItem('tonghua-commercial-settings-v1', JSON.stringify({ apiKey: '' })));
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), mobile ? 'jpeg' : 'png');
   assert.equal(await page.locator('#generationRoute').inputValue(), 'line1');
+  await page.locator('#closeSettings').click();
+  assert.equal(await page.locator('.sidebar #generationRoute').count(), 0);
+  assert.equal(await page.locator('#engineModal #generationRoute').count(), 1);
+  assert.deepEqual(await page.locator('.top-actions button').allTextContents(), ['帮助/充值', '⚙ 设置', '生成引擎 · Lite']);
+  await page.locator('#openEngine').click();
+  const selectorBox = await page.locator('#generationRoute').boundingBox();
+  const explanationBox = await page.locator('#engineExplanation').boundingBox();
+  assert(explanationBox.y >= selectorBox.y + selectorBox.height);
+  assert.equal(await page.locator('#engineModal .help').count(), 0);
+  assert.equal(await page.locator('#modal #generationRoute').count(), 0);
   await page.locator('#generationRoute').selectOption('line2');
+  await page.locator('#finishEngine').click();
+  await page.reload();
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line2');
+  await page.locator('#openSettings').click();
   await page.locator('#outputFormat').selectOption('jpeg');
   if (process.env.SETTINGS_SCREENSHOT) await page.screenshot({ path: process.env.SETTINGS_SCREENSHOT });
   await page.locator('#saveSettings').click();
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), 'jpeg');
   assert.equal(await page.locator('#generationRoute').inputValue(), 'line2');
+  await page.locator('#closeSettings').click();
+  await page.locator('#openEngine').click();
+  await page.locator('#generationRoute').selectOption('line3');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#engineModal').evaluate(el => el.classList.contains('open')), false);
+  await page.reload();
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line3');
+  await page.locator('#openSettings').click();
+  await page.locator('#saveSettings').click();
+  await page.reload();
+  assert.equal(await page.locator('#generationRoute').inputValue(), 'line3');
+  await page.locator('#openSettings').click();
   // Download naming follows the returned image bytes/MIME rather than the preference.
   await page.addScriptTag({ content: fs.readFileSync(new URL('src/references.js', root), 'utf8') });
   const gallery = fs.readFileSync(new URL('src/gallery.js', root), 'utf8');
   await page.addScriptTag({ content: gallery.slice(gallery.indexOf('function filename('), gallery.indexOf('async function download(')) });
   const extension = await page.evaluate(() => filename({ createdAt: Date.now(), blob: new Blob(['jpeg'], { type: 'image/jpeg' }) }));
   assert(extension.endsWith('.jpg'));
+  await page.locator('#closeSettings').click();
+  await page.locator('#openEngine').click();
   await page.locator('#generationRoute').selectOption('line1');
+  await page.locator('#closeEngine').click();
+  await page.locator('#openSettings').click();
   await page.locator('#outputFormat').selectOption('png'); await page.locator('#saveSettings').click();
   await page.reload(); await page.locator('#openSettings').click();
   assert.equal(await page.locator('#outputFormat').inputValue(), 'png');
@@ -43,5 +73,5 @@ try {
   assert.deepEqual(errors, []);
   await page.close();
   }
-  console.log('Output format UI tests passed: mobile JPG, narrow desktop PNG, legacy settings, explicit JPG/PNG persistence, JPG filename.');
+  console.log('Output format UI tests passed: mobile JPG, narrow desktop PNG, legacy settings, explicit JPG/PNG persistence, JPG filename, engine dialog ordering/explanation/close.');
 } finally { await browser.close(); }

@@ -28,7 +28,7 @@ function decodeImageBase64(value) {
   return { bytes, mime };
 }
 async function imageBlob(data){let d=findImagePayload(data)||data?.data?.[0]||data?.result?.data?.[0]||data?.output?.[0]||data,encoded=d?.b64_json||d?.b64||d?.partial_image_b64;if(encoded){if(typeof encoded==='string'&&/^https?:\/\//i.test(encoded.trim()))d={...d,url:encoded.trim()};else{let decoded=decodeImageBase64(encoded);return new Blob([decoded.bytes],{type:decoded.mime})}}let url=d?.url||d?.image_url||data?.image_url||data?.url;if(url){let lastError;for(let attempt=0;attempt<2;attempt++){try{let r=await fetch(url);if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.blob()}catch(e){lastError=e;if(!attempt)await new Promise(resolve=>setTimeout(resolve,800))}}let origin="未知图片域名";try{origin=new URL(url).origin}catch{}throw new Error(`图片已在后台生成，但浏览器无法下载返回图片（${origin}）：${lastError?.message||"连接失败"}。可能是图片域名跨域限制或临时链接失效`)}throw new Error("接口已响应，但没有找到图片数据")}
-async function fetchApi(url,options={}){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest();xhr.open(options.method||"GET",url,true);xhr.timeout=0;xhr.responseType="blob";for(let[key,value]of Object.entries(options.headers||{}))xhr.setRequestHeader(key,value);xhr.onload=()=>{let headers=new Headers();for(let line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)){let i=line.indexOf(":");if(i>0)headers.append(line.slice(0,i).trim(),line.slice(i+1).trim())}resolve(new Response(xhr.response,{status:xhr.status,statusText:xhr.statusText,headers}))};xhr.onerror=()=>reject(new Error("生图连接被远端中断（XHR 状态 0）。客户端已设置为永不超时，请核对中转的跨域长连接配置和扣费记录，不要立即重复提交"));xhr.ontimeout=()=>reject(new Error("生图请求发生超时；当前客户端 timeout=0，正常情况下不会主动超时"));xhr.onabort=()=>reject(new Error("生图请求已被中止"));xhr.send(options.body??null)})}
+async function fetchApi(url,options={}){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest();xhr.open(options.method||"GET",url,true);xhr.timeout=0;xhr.responseType="blob";for(let[key,value]of Object.entries(options.headers||{}))xhr.setRequestHeader(key,value);xhr.onload=()=>{let headers=new Headers();for(let line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)){let i=line.indexOf(":");if(i>0)headers.append(line.slice(0,i).trim(),line.slice(i+1).trim())}resolve(new Response(xhr.response,{status:xhr.status,statusText:xhr.statusText,headers}))};xhr.onerror=()=>reject(new Error("生图连接被远端中断（XHR 状态 0）。客户端已设置为永不超时，请稍后核对任务状态和扣费记录，不要立即重复提交"));xhr.ontimeout=()=>reject(new Error("生图请求发生超时；当前客户端 timeout=0，正常情况下不会主动超时"));xhr.onabort=()=>reject(new Error("生图请求已被中止"));xhr.send(options.body??null)})}
 async function submitAsyncImageTask(base, path, bodyFactory, headers, apiKey, clientRequestId) {
   let lastError = null;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -99,7 +99,7 @@ async function pollAsyncImageTask(base, id) {
       continue; // 409（结果未就绪）或 5xx（服务端临时错误）继续轮询
     }
     if (data.status === 'failed') {
-      const suffix = data.upstreamRequestId ? `（上游 Request ID：${data.upstreamRequestId}）` : '';
+      const suffix = data.upstreamRequestId ? `（请求编号：${data.upstreamRequestId}）` : '';
       const error = new Error((data.error || '后台任务失败') + suffix);
       error.confirmed = true;
       throw error;
@@ -134,16 +134,16 @@ function lineArtRequestSize(sourceDimensions) {
 // 把上游英文错误 / 各种来源的报错，归类成固定几类，输出统一中文标题与说明。
 // 只做「提示翻译」，不做自动重试。未知/已有的本地中文错误原样保留。
 function classifyError(raw) {
-  const text = String(raw || '').trim(), lower = text.toLowerCase();
+  const text = String(raw || '').replace(/中转站|中转/g, '服务平台').trim(), lower = text.toLowerCase();
   const has = words => words.some(w => /^\d{3}$/.test(w) ? new RegExp('(?:^|[^0-9])' + w + '(?![0-9])').test(lower) : lower.includes(w));
   // 本地恢复/下载提示包含诊断信息，应保留完整操作建议。
   if (/幂等编号保护|浏览器无法下载返回图片|客户端.*(?:timeout|超时)|请.*核对/.test(text)) return { type: 'unknown', title: '', detail: text };
   const rules = [
-    { type: 'balance', title: '余额不足', detail: '账户余额不足，请到中转站充值后再试', test: () => has(['insufficient balance', 'insufficient_quota', 'insufficient quota', 'insufficient credit', 'insufficient_credit', 'out of credit', 'no credits', 'quota exceeded', 'quota_exceeded', '402', '余额不足']) },
+    { type: 'balance', title: '余额不足', detail: '账户余额不足，请充值后再试', test: () => has(['insufficient balance', 'insufficient_quota', 'insufficient quota', 'insufficient credit', 'insufficient_credit', 'out of credit', 'no credits', 'quota exceeded', 'quota_exceeded', '402', '余额不足']) },
     { type: 'busy', title: '当前排队拥挤', detail: '当前使用人数较多，请稍后重新生成', test: () => has(['rate limit', 'rate_limit', 'too many request', 'rate exceeded', '429', '限流', '拥挤', '排队', '请求过多', '请求次数过多', '并发过高', '满载', '任务过多']) },
-    { type: 'server', title: '服务暂时繁忙', detail: '中转服务暂时不稳定，请稍后重试', test: () => has(['upstream', 'bad gateway', 'gateway', '502', '503', '504', '500', 'overload', 'maintenance', 'timeout', '繁忙', '服务不可用', '内部错误', '服务异常']) },
+    { type: 'server', title: '服务暂时繁忙', detail: '服务暂时不稳定，请稍后重试', test: () => has(['upstream', 'bad gateway', 'gateway', '502', '503', '504', '500', 'overload', 'maintenance', 'timeout', '繁忙', '服务不可用', '内部错误', '服务异常']) },
     { type: 'key', title: '密钥无效', detail: '客户密钥无效或已失效，请重新填写', test: () => has(['invalid api key', 'invalid_api_key', 'unauthorized', 'key not active', '401', '密钥无效', '密钥已失效']) },
-    { type: 'model', title: '模型不可用', detail: '当前模型暂不可用或无访问权限，请更换模型', test: () => has(['model not found', 'model_not_found', 'no permission', 'no_permission', 'permission denied', 'forbidden', '403', '404', '模型不可用', '无权限']) },
+    { type: 'model', title: '生成引擎不可用', detail: '当前生成引擎暂不可用或无访问权限，请切换生成引擎后重试', test: () => has(['model not found', 'model_not_found', 'no permission', 'no_permission', 'permission denied', 'forbidden', '403', '404', '模型不可用', '无权限']) },
     { type: 'content', title: '内容未通过审核', detail: '描述内容未通过审核，请调整后重试', test: () => has(['safety', 'content_policy', 'content policy', 'moderation', '422', '审核', '违规', '敏感', '不安全']) },
   ];
   for (const r of rules) if (r.test()) return { type: r.type, title: r.title, detail: r.detail };

@@ -61,7 +61,7 @@ try {
       try { await requestTask({ type: 'lineart', source: { blob: new Blob(['broken']) } }, settings); } catch {}
       const params = { subject: '测试', size: '1:1.4' };
       for (const type of ['generation', 'reference', 'edit']) {
-        await requestTask({ type, params, instruction: '测试修改', source: { blob: restored }, references: [{ blob: restored }] }, { ...settings, outputFormat: 'jpeg', route: 'line2' });
+        await requestTask({ type, params, instruction: '测试修改', source: { blob: restored }, references: [{ blob: restored }] }, { ...settings, outputFormat: 'jpeg', route: type === 'generation' ? 'line3' : 'line2' });
       }
       await requestTask({ type: 'lineart', outputFormat: 'png', route: 'line1', source: { blob: restored } }, { ...settings, outputFormat: 'jpeg', route: 'line2' });
       // Simulate a gateway ignoring JPEG and returning PNG, including restored tasks.
@@ -85,7 +85,7 @@ try {
         failureKeptOriginal: conversionFailure.blob === restored,
         failureWarning: conversionFailure.formatWarning
       };
-      const pending = await GalleryStore.save({ id: 'format-pending', kind: 'pending' }, { type: 'generation', params, outputFormat: 'jpeg', route: 'line2' });
+      const pending = await GalleryStore.save({ id: 'format-pending', kind: 'pending' }, { type: 'generation', params, outputFormat: 'jpeg', route: 'line3' });
       GalleryStore.close();
       const restoredRoute = (await GalleryStore.retry(pending.item.id)).route;
       const restoredFormat = (await GalleryStore.retry(pending.item.id)).outputFormat;
@@ -116,8 +116,8 @@ try {
     assert.equal(result.submissions, 5, "invalid image must fail before submission");
     assert.deepEqual(result.requestedFormats, ["png", "jpeg", "jpeg", "jpeg", "png"]);
     assert.equal(result.restoredFormat, "jpeg");
-    assert.deepEqual(result.requestedRoutes, ["line1", "line2", "line2", "line2", "line1"]);
-    assert.equal(result.restoredRoute, "line2");
+    assert.deepEqual(result.requestedRoutes, ["line1", "line3", "line2", "line2", "line1"]);
+    assert.equal(result.restoredRoute, "line3");
     assert.equal(result.jpegChecks.mime, 'image/jpeg');
     assert.deepEqual(result.jpegChecks.signature, [255,216]);
     assert.deepEqual(result.jpegChecks.size, { width:96, height:128 });

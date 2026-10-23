@@ -70,7 +70,51 @@ $('apiKey').addEventListener('input', () => {
   ++adminCheckVersion; clearTimeout(adminCheckTimer); hideAdminControls();
   adminCheckTimer = setTimeout(checkAdminControls, 400);
 });
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
+
+function syncEngineButton() {
+  const name = { line1: 'Lite', line2: 'Pro', line3: 'Max' }[getSettings().route] || 'Lite';
+  $('openEngine').textContent = '生成引擎 · ' + name;
+}
+function closeEngineDialog(restoreFocus = true) {
+  const wasOpen = $('engineModal').classList.contains('open');
+  $('engineModal').classList.remove('open');
+  $('openEngine').setAttribute('aria-expanded', 'false');
+  if (wasOpen && restoreFocus) $('openEngine').focus({ preventScroll: true });
+}
+$('openEngine').onclick = () => {
+  $('generationRoute').value = getSettings().route;
+  $('engineModal').classList.add('open');
+  $('openEngine').setAttribute('aria-expanded', 'true');
+  hideHelp(); closeContextMenu();
+  $('generationRoute').focus({ preventScroll: true });
+};
+$('closeEngine').onclick = () => closeEngineDialog();
+$('finishEngine').onclick = () => closeEngineDialog();
+$('engineModal').onclick = e => { if (e.target === $('engineModal')) closeEngineDialog(); };
+document.addEventListener('keydown', e => {
+  if (!$('engineModal').classList.contains('open')) return;
+  if (e.key === 'Escape') { closeEngineDialog(); return; }
+  if (e.key !== 'Tab') return;
+  const controls = [$('closeEngine'), $('generationRoute'), $('finishEngine')];
+  const first = controls[0], last = controls[controls.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement))) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus();
+  }
+});
+
+$('generationRoute').value = getSettings().route;
+syncEngineButton();
+$('generationRoute').addEventListener('change', () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...saved, route: ['line1', 'line2', 'line3'].includes($('generationRoute').value) ? $('generationRoute').value : 'line1' }));
+    syncEngineButton();
+    toast('生成引擎已保存');
+  } catch { toast('引擎选择保存失败，请重试'); }
+});
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; syncEngineButton(); checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -81,7 +125,7 @@ $('openSettings').onclick = () => openSettings(); $('closeSettings').onclick = (
 els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remove('open'); };
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
-$('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
+$('clearLogs').onclick = () => { if (confirm('确定清空全部任务记录吗？“我的作品”中的图片不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
 $('saveSettings').onclick = async () => {
   const apiKey = $('apiKey').value.trim(), button = $('saveSettings');
   button.disabled = true;
@@ -91,7 +135,7 @@ $('saveSettings').onclick = async () => {
     if ($('apiKey').value.trim() !== apiKey) return;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey,
       adminModel: admin ? $('adminModel').value : '',
-      route: $('generationRoute').value === 'line2' ? 'line2' : 'line1',
+      route: ['line1', 'line2', 'line3'].includes($('generationRoute').value) ? $('generationRoute').value : 'line1',
       outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' }));
     fillSettings(); els.modal.classList.remove('open');
     toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成');
@@ -132,7 +176,7 @@ document.querySelectorAll('.help').forEach(help => {
   help.addEventListener('focus', () => showHelp(help)); help.addEventListener('blur', hideHelp);
   help.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); $('helpBubble').classList.contains('open') ? hideHelp() : showHelp(help); });
 });
-document.addEventListener('scroll', hideHelp, { capture: true, passive: true }); window.addEventListener('resize', hideHelp);
+document.addEventListener('scroll', hideHelp, { capture: true, passive: true }); window.addEventListener('resize', () => { hideHelp(); updateDeviceCopy(); });
 $('openHelp').onclick = () => $('supportModal').classList.add('open'); $('supportClose').onclick = () => $('supportModal').classList.remove('open');
 $('supportModal').onclick = e => { if (e.target === $('supportModal')) $('supportModal').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { els.modal.classList.remove('open'); closePreview(); closeImageEditor(); closeContextMenu(); $('supportModal').classList.remove('open'); } });
@@ -147,7 +191,7 @@ dropArea.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth
 dropArea.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; dropArea.classList.remove('dragging'); importDroppedImages(e.dataTransfer.files).catch(error => toast(error.message)); });
 window.addEventListener('beforeunload', e => { saveParams(); if (activeJobs > 0) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('pagehide', e => { saveParams(); if (!e.persisted) { ImageURLs.clear(); ImageWork.close(); } });
-loadParams(); fillSettings(); renderLogs(); renderThemeHistory();
+loadParams(); fillSettings(); renderLogs(); renderThemeHistory(); updateDeviceCopy();
 galleryReady = renderGallery();
 galleryReady.then(() => resumePendingTasks()).catch(error => toast('图片缓存暂不可用：' + error.message));
 refreshQuota({ silent: true });

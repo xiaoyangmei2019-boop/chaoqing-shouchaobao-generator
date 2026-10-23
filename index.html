@@ -85,8 +85,20 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .app-update #updateNow{background:var(--green);color:#fff;border-color:var(--green)}.app-update #updateNow:disabled{opacity:.6;cursor:wait}
 @media(max-width:780px){.app-update{bottom:max(16px,env(safe-area-inset-bottom));right:16px;padding:16px}}
 
+/* Approved engine selector dialog. */
+.engine-dialog{width:min(480px,100%);grid-template-rows:auto minmax(0,1fr)}
+.engine-dialog-body{padding:6px 24px 24px;overflow:auto}
+.engine-dialog .field{margin-top:16px}.engine-dialog select{font-size:15px;height:48px;background:#fff}
+.engine-explanation{margin-top:20px;padding:16px;border-radius:10px;background:#f3f7f4;border:1px solid var(--line)}
+.engine-explanation p{margin:0;font-size:13px;line-height:1.8}.engine-explanation p+p{margin-top:15px}
+.engine-explanation strong{display:block;color:var(--ink);font-size:13px;font-weight:650}
+.engine-explanation span{display:block;margin-top:3px;color:var(--muted)}
+.engine-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px}
+.engine-dialog-footer>span{font-size:12px;color:var(--muted)}.engine-dialog-footer .save-settings{margin:0;min-height:44px;padding:0 24px}
+@media(max-width:780px){.engine-dialog-body{padding:4px 20px 20px}.engine-dialog select{font-size:16px}}
+
 </style>
-<meta name="app-version" content="v-25acff50c6c9">
+<meta name="app-version" content="v-04fd49afd436">
 </head>
 <body>
 <main class="app">
@@ -101,35 +113,47 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
    <label class="field"><span class="label-with-help">图片方向<i class="help" tabindex="0" data-tip="控制画面的长宽方向和构图方式，默认的横版竖版比例适合A4、A3、8K、4K打印。">?</i></span><select id="size"><option value="1:1.4">竖版</option><option value="1.4:1">横版</option></select></label>
   </div>
   <label id="titleField" class="field disabled-field"><span class="label-with-help">标题文字<i class="help" tabindex="0" data-tip="填写画面中需要出现的大标题。例如“端午快乐”。手抄报需要大标题，主题画可以自由选择。">?</i></span><input id="titleText" maxlength="30" placeholder="当前已选择不要标题" disabled aria-disabled="true"></label>
-<section class="reference-picker"><div class="reference-head"><strong class="label-with-help">可选参考图<i class="help" tabindex="0" data-tip="上传参考图会参考图中的形象进行设计，比如上传人物照片，就会结合这个人物形象设计。可以在提示词中具体说明参考图中的哪个元素，否则有可能出现元素选择错误。">?</i></strong><small id="referenceCount">未引用</small></div><label class="reference-upload" for="referenceInput">＋ 上传参考图（可多选）</label><input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden><div id="referenceList" class="reference-list"><p class="reference-empty">可在这里上传，或右键引用右侧图片，最多 10 张。</p></div></section><input id="importImageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+<section class="reference-picker"><div class="reference-head"><strong class="label-with-help">可选参考图<i class="help" tabindex="0" data-tip="上传参考图会参考图中的形象进行设计，比如上传人物照片，就会结合这个人物形象设计。可以在提示词中具体说明参考图中的哪个元素，否则有可能出现元素选择错误。">?</i></strong><small id="referenceCount">未引用</small></div><label class="reference-upload" for="referenceInput">＋ 上传参考图（可多选）</label><input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden><div id="referenceList" class="reference-list"><p class="reference-empty">可在这里上传，或将“我的作品”中的图片设为参考图，最多 10 张。</p></div></section><input id="importImageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
   <label class="field"><div class="label-row"><span class="label-with-help">主题内容<i class="help" tabindex="0" data-tip="这是最重要的自由输入区域，用来告诉AI具体画什么，可以模糊表达，比如端午节主题画，也可以具体表达画面有什么内容、画面不能出现什么内容。">?</i></span><span id="charCount" class="char-count">0 / 500</span></div><textarea id="subject" maxlength="500" placeholder="例如：端午节主题画，画面有粽子、龙舟和屈原"></textarea></label>
   <button id="generate" class="generate" type="button"><span>✦</span><span>生成儿童插画</span></button>
   <p class="hint">点击生成即消耗积分。成功后图片将自动下载，并保存在本页最近 50 张图片中。</p>
   <section class="recent-themes collapsed" id="recentThemes"><div class="recent-head" id="recentHead" role="button" tabindex="0" aria-expanded="false" title="点击展开最近主题"><strong>最近主题</strong><span>最多50条 <i class="recent-arrow" aria-hidden="true">▾</i></span></div><div id="recentThemeList" class="recent-list"><p class="recent-empty">提交生成后，主题记录会显示在这里。</p></div></section>
  </aside>
  <section class="workspace">
-  <header class="topbar"><div><h2>生成记录</h2><p>生成的图片会自动下载，也可将本地图片拖入右侧；本页面只展示最近50张。</p></div><div class="top-actions"><span id="connectionBadge" class="badge" style="display:none"><i class="status-dot"></i>接口待设置</span><button id="openHelp" class="icon-btn" type="button">帮助/充值</button><button id="openSettings" class="icon-btn" type="button">⚙ 设置</button></div></header>
-  <div class="gallery-wrap"><div id="gallery" class="gallery"><div class="empty"><div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div></div></div>
+  <header class="topbar"><div><h2>我的作品</h2><p>生成的图片会自动下载，也可导入本地图片；本页面只展示最近 50 张。</p></div><div class="top-actions"><span id="connectionBadge" class="badge" style="display:none"><i class="status-dot"></i>接口待设置</span><button id="openHelp" class="icon-btn" type="button">帮助/充值</button><button id="openSettings" class="icon-btn" type="button">⚙ 设置</button><button id="openEngine" class="icon-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="engineModal">生成引擎 · Lite</button></div></header>
+  <div class="gallery-wrap"><div id="gallery" class="gallery"><div class="empty"><div class="empty-inner"><div class="empty-icon">✎</div><h3>开始创作</h3><p>选择画面参数、填写主题内容，生成后的图片会显示在这里。</p></div></div></div></div>
  </section>
 </main>
 <aside id="appUpdate" class="app-update" role="status" aria-live="polite" hidden><div><strong>发现新版本</strong><p id="appUpdateMessage">刷新即可使用最新功能，本地图库和设置会保留。</p></div><div class="app-update-actions"><button id="updateLater" type="button">稍后</button><button id="updateNow" type="button">刷新更新</button></div></aside>
+<div id="engineModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="engineDialogTitle">
+ <div class="modal engine-dialog">
+  <div class="modal-head"><h3 id="engineDialogTitle">生成引擎</h3><button id="closeEngine" class="close" type="button" aria-label="关闭生成引擎">×</button></div>
+  <div class="engine-dialog-body">
+   <label class="field"><span>选择生成引擎</span><select id="generationRoute" aria-describedby="engineExplanation"><option value="line1">灵绘 Lite｜0.3元/张</option><option value="line2">灵绘 Pro｜0.3元/张</option><option value="line3">灵绘 Max｜0.8元/张</option></select></label>
+   <div id="engineExplanation" class="engine-explanation">
+    <p><strong>灵绘 Lite / 灵绘 Pro</strong><span>均为 0.3 元/张，使用不同生成通道。其中一个拥堵时，可以切换另一个尝试。</span></p>
+    <p><strong>灵绘 Max</strong><span>0.8 元/张，价格更高，生成更快、画质更好。</span></p>
+   </div>
+   <div class="engine-dialog-footer"><span>切换后自动保存</span><button id="finishEngine" class="save-settings" type="button">完成</button></div>
+  </div>
+ </div>
+</div>
 <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="设置">
  <div class="modal">
-  <div class="modal-head"><h3>设置与生成记录</h3><button id="closeSettings" class="close" type="button" aria-label="关闭">×</button></div>
-  <div class="tabs"><button class="tab active" data-tab="api" type="button">生成设置</button><button class="tab" data-tab="logs" type="button">生成记录</button></div>
+  <div class="modal-head"><h3>设置与任务记录</h3><button id="closeSettings" class="close" type="button" aria-label="关闭">×</button></div>
+  <div class="tabs"><button class="tab active" data-tab="api" type="button">生成设置</button><button class="tab" data-tab="logs" type="button">任务记录</button></div>
   <section id="panel-api" class="tab-panel active">
    <div class="settings-grid">
     <label class="field" style="grid-column:1/-1"><span>客户密钥</span><div class="secret-row"><input id="apiKey" type="password" autocomplete="off" placeholder="请输入购买的密钥"><button id="toggleKey" class="small-btn" type="button">显示</button></div></label>
     <div id="adminSettingsEntry" style="grid-column:1/-1" hidden><button id="openAdminSettings" type="button" class="save-settings" aria-expanded="false" aria-controls="adminModelField">管理员模型与价格设置</button></div>
-    <label id="adminModelField" class="field" style="grid-column:1/-1" hidden><span>管理员模式 · 生图模型与价格</span><select id="adminModel"></select><small class="quota-message">管理员选择优先于线路设置，用于生图、参考图及线稿提取。修改图片继续使用专用模型。</small></label>
-    <label class="field" style="grid-column:1/-1"><span>生成线路</span><select id="generationRoute"><option value="line1">线路一 · 收费 0.3</option><option value="line2">线路二 · 收费 0.8 · 更加顺畅</option></select></label>
+    <label id="adminModelField" class="field" style="grid-column:1/-1" hidden><span>管理员模式 · 生图模型与价格</span><select id="adminModel"></select><small class="quota-message">管理员选择优先于生成引擎设置，用于生图、参考图及线稿提取。修改图片继续使用专用模型。</small></label>
     <label class="field" style="grid-column:1/-1"><span>生成图片格式</span><select id="outputFormat"><option value="png">PNG · 无损画质</option><option value="jpeg">JPG · 高画质，文件更小</option></select><small class="quota-message">手机默认 JPG，电脑默认 PNG；手动保存后按您的选择。JPG 使用 95 高画质，保持原图尺寸，适合保存和分享；PNG 适合精细线稿和反复编辑。应用于新生成、参考图、修改及提取线稿。</small></label>
     <div id="quotaPanel" class="quota-panel"><div class="quota-head"><strong>密钥额度状态</strong><button id="refreshQuota" class="quota-refresh" type="button">刷新额度</button></div><div class="quota-grid"><div class="quota-stat"><span>剩余积分</span><b id="quotaRemaining">--</b></div><div class="quota-stat"><span>累计已用</span><b id="quotaUsed">--</b></div><div class="quota-stat"><span>有效期</span><b id="quotaExpiry">--</b></div></div><p id="quotaMessage" class="quota-message">保存密钥后即可查询，不会消耗积分。</p></div>
    </div>
    <button id="saveSettings" class="save-settings" type="button">保存设置</button>
   </section>
   <section id="panel-logs" class="tab-panel">
-   <div class="log-tools"><span id="logSummary">暂无生成记录</span><button id="clearLogs" class="danger-link" type="button">清空记录</button></div>
+   <div class="log-tools"><span id="logSummary">暂无任务记录</span><button id="clearLogs" class="danger-link" type="button">清空任务记录</button></div>
    <div class="table-wrap"><table><thead><tr><th>时间</th><th>主题</th><th>尺寸/质量</th><th>扣积分</th><th>状态</th><th>失败原因</th></tr></thead><tbody id="logBody"></tbody></table></div>
   </section>
  </div>
@@ -161,19 +185,19 @@ function defaultOutputFormat() {
 }
 function getSettings() {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch {}
-  const route = saved.route === 'line2' ? 'line2' : 'line1';
+  const route = ['line1', 'line2', 'line3'].includes(saved.route) ? saved.route : 'line1';
   return { apiBase: 'https://vip.aittco.com/v1', apiPath: '/images/generations',
     taskApiBase: location.protocol === 'file:' ? '' : location.origin + '/api/image-tasks',
     adminModel: ['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(saved.adminModel) ? saved.adminModel : '',
-    route, model: route === 'line2' ? 'gpt-image-2-official' : 'gpt-image-2', points: 3,
+    route, model: route === 'line3' ? 'gpt-image-2-official' : route === 'line2' ? 'gpt-image-2-svip' : 'gpt-image-2', points: 3,
     outputFormat: ['png', 'jpeg'].includes(saved.outputFormat) ? saved.outputFormat : defaultOutputFormat(),
     apiKey: typeof saved.apiKey === 'string' ? saved.apiKey : '' };
 }
 function quotaPoints(value){let n=Number(value);return Number.isFinite(n)?n/50000:null}function formatPoints(value){if(value==null)return"--";return new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(value)+" 积分"}function setQuotaState(state,data,message){let badge=$("connectionBadge"),dotClass=state==="ready"?"ready":state==="low"?"low":state==="error"?"error":"";badge.classList.toggle("quota-low",state==="low");badge.classList.toggle("quota-error",state==="error");if(state==="loading")badge.innerHTML='<i class="status-dot"></i>正在查询额度';else if(state==="empty")badge.innerHTML='<i class="status-dot"></i>密钥待设置';else if(state==="error")badge.innerHTML='<i class="status-dot error"></i>密钥不可用';else{let remaining=data?.unlimited_quota?"无限额度":formatPoints(quotaPoints(data?.total_available));badge.innerHTML=`<i class="status-dot ${dotClass}"></i>剩余 ${remaining}`}$('quotaRemaining').textContent=data?(data.unlimited_quota?"无限额度":formatPoints(quotaPoints(data.total_available))):"--";$('quotaUsed').textContent=data?formatPoints(quotaPoints(data.total_used)):"--";let expires=Number(data?.expires_at||0);$('quotaExpiry').textContent=data?(expires>0?new Date(expires*1000).toLocaleDateString("zh-CN"):"永不过期"):"--";$('quotaMessage').textContent=message||"保存密钥后即可查询，不会消耗积分。"}
-async function refreshQuota({silent=false}={}){let s=getSettings();if(!s.apiKey){setQuotaState("empty",null);return null}if(quotaPromise)return quotaPromise;setQuotaState("loading",null,"正在向中转查询密钥额度……");let button=$("refreshQuota");button.disabled=true;quotaPromise=(async()=>{try{let origin=new URL(s.apiBase).origin,res=await fetch(origin+"/api/usage/token/",{method:"GET",headers:{Authorization:`Bearer ${s.apiKey}`},cache:"no-store"}),payload=await res.json().catch(()=>({})),data=payload?.data;if(!res.ok||!data)throw new Error(payload?.message||`额度查询失败（HTTP ${res.status}）`);let remaining=quotaPoints(data.total_available),state=!data.unlimited_quota&&remaining!=null&&remaining<3?"low":"ready",modelOk=!data.model_limits_enabled||data.model_limits?.[s.model]===true,msg=modelOk?`密钥“${data.name||"未命名"}”验证成功；额度来自中转实时数据。`:'密钥有效，但当前线路暂无使用权限，请更换线路或联系服务方。';setQuotaState(state,data,msg);if(state==="low"&&!silent)toast("剩余积分不足一次生图，请及时充值");return data}catch(e){setQuotaState("error",null,e?.message||"额度查询失败");if(!silent)toast(e?.message||"额度查询失败");return null}finally{button.disabled=false;quotaPromise=null}})();return quotaPromise}
+async function refreshQuota({silent=false}={}){let s=getSettings();if(!s.apiKey){setQuotaState("empty",null);return null}if(quotaPromise)return quotaPromise;setQuotaState("loading",null,"正在查询账户额度……");let button=$("refreshQuota");button.disabled=true;quotaPromise=(async()=>{try{let origin=new URL(s.apiBase).origin,res=await fetch(origin+"/api/usage/token/",{method:"GET",headers:{Authorization:`Bearer ${s.apiKey}`},cache:"no-store"}),payload=await res.json().catch(()=>({})),data=payload?.data;if(!res.ok||!data)throw new Error(payload?.message||`额度查询失败（HTTP ${res.status}）`);let remaining=quotaPoints(data.total_available),state=!data.unlimited_quota&&remaining!=null&&remaining<3?"low":"ready",modelOk=!data.model_limits_enabled||data.model_limits?.[s.model]===true,msg=modelOk?`密钥“${data.name||"未命名"}”验证成功；账户额度已实时更新。`:'密钥有效，但当前生成引擎暂无使用权限，请更换引擎或联系服务方。';setQuotaState(state,data,msg);if(state==="low"&&!silent)toast("剩余积分不足一次生图，请及时充值");return data}catch(e){setQuotaState("error",null,e?.message||"额度查询失败");if(!silent)toast(e?.message||"额度查询失败");return null}finally{button.disabled=false;quotaPromise=null}})();return quotaPromise}
 
 function themeHistory(){try{let a=JSON.parse(localStorage.getItem(THEME_HISTORY_KEY)||"[]");return Array.isArray(a)?a:[]}catch{return[]}}function rememberTheme(p){let a=themeHistory().filter(x=>x.subject!==p.subject);a.unshift({subject:p.subject,state:{...p},time:new Date().toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})});localStorage.setItem(THEME_HISTORY_KEY,JSON.stringify(a.slice(0,50)));renderThemeHistory()}function applyThemeRecord(record){Object.keys(record.state||{}).forEach(k=>{if(els[k]&&record.state[k]!=null)els[k].value=record.state[k]});els.subject.value=record.subject||"";updateForm();document.querySelector(".sidebar").scrollTo({top:0,behavior:"smooth"});els.subject.focus();toast("已应用历史主题和参数")}function renderThemeHistory(){let a=themeHistory(),box=$("recentThemeList");box.innerHTML=a.length?a.map((x,i)=>`<button class="recent-item" type="button" data-theme-index="${i}" title="${escapeHTML(x.subject)}"><b>${escapeHTML(x.subject)}</b><small>${escapeHTML(x.time)}</small></button>`).join(""):'<p class="recent-empty">提交生成后，主题记录会显示在这里。</p>'}
-function renderLogs(){let a=logs();$("logSummary").textContent=a.length?`共 ${a.length} 条记录 · 成功 ${a.filter(x=>x.success).length} 条`:"暂无生成记录";$("logBody").innerHTML=a.length?a.map(x=>{let reason=x.success?"—":x.error||"旧记录未保存具体原因";return `<tr><td>${escapeHTML(x.time)}</td><td title="${escapeHTML(x.subject)}">${escapeHTML(x.subject.slice(0,22))}</td><td>${escapeHTML(x.size)} / ${escapeHTML(x.quality)}</td><td>${x.points}</td><td class="${x.success?"success":"failed"}">${x.success?"成功":"失败"}</td><td class="failure-reason ${x.success?"":"has-error"}" title="${escapeHTML(reason)}">${escapeHTML(reason)}</td></tr>`}).join(""):'<tr><td colspan="6" style="text-align:center;color:#7b8984">暂无记录</td></tr>'}
+function renderLogs(){let a=logs();$("logSummary").textContent=a.length?`共 ${a.length} 条记录 · 成功 ${a.filter(x=>x.success).length} 条`:"暂无任务记录";$("logBody").innerHTML=a.length?a.map(x=>{let reason=x.success?"—":x.error||"旧记录未保存具体原因";return `<tr><td>${escapeHTML(x.time)}</td><td title="${escapeHTML(x.subject)}">${escapeHTML(x.subject.slice(0,22))}</td><td>${escapeHTML(x.size)} / ${escapeHTML(x.quality)}</td><td>${x.points}</td><td class="${x.success?"success":"failed"}">${x.success?"成功":"失败"}</td><td class="failure-reason ${x.success?"":"has-error"}" title="${escapeHTML(reason)}">${escapeHTML(reason)}</td></tr>`}).join(""):'<tr><td colspan="6" style="text-align:center;color:#7b8984">暂无任务记录</td></tr>'}
 function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 let taskAudioContext=null;function unlockTaskAudio(){if(taskAudioContext)return taskAudioContext;let AudioEngine=window.AudioContext||window.webkitAudioContext;if(!AudioEngine)return null;try{taskAudioContext=new AudioEngine();let oscillator=taskAudioContext.createOscillator(),gain=taskAudioContext.createGain();gain.gain.value=0;oscillator.connect(gain);gain.connect(taskAudioContext.destination);oscillator.start();oscillator.stop(taskAudioContext.currentTime+.01)}catch{}return taskAudioContext}function scheduleTaskTone(success){let context=unlockTaskAudio();if(!context)return;let now=context.currentTime+.02,notes=success?[[659,.11],[880,.2]]:[[220,.17],[165,.28]];notes.forEach((note,index)=>{let oscillator=context.createOscillator(),gain=context.createGain(),start=now+index*.12,end=start+note[1];oscillator.type=success?"sine":"triangle";oscillator.frequency.setValueAtTime(note[0],start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(success?.065:.075,start+.018);gain.gain.exponentialRampToValueAtTime(.0001,end);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(start);oscillator.stop(end+.02)})}function playTaskSound(success){let context=unlockTaskAudio();if(!context)return;if(context.state==="suspended")context.resume().then(()=>scheduleTaskTone(success)).catch(()=>{});else scheduleTaskTone(success)}
@@ -355,7 +379,7 @@ const GalleryStore = (() => {
     if (snapshot) {
       const source = snapshot.source ? { ...summary(snapshot.source), assetId: asset(snapshot.source, 'source:' + item.id) } : null;
       const references = (snapshot.references || []).map((ref, i) => ({ name: ref.name || '参考图', assetId: asset(ref, 'reference:' + item.id + ':' + i) }));
-      snapshot = { id: meta.id, type: snapshot.type, adminModel: snapshot.adminModel || '', route: snapshot.route === 'line2' ? 'line2' : 'line1', outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
+      snapshot = { id: meta.id, type: snapshot.type, adminModel: snapshot.adminModel || '', route: ['line1', 'line2', 'line3'].includes(snapshot.route) ? snapshot.route : 'line1', outputFormat: snapshot.outputFormat === 'jpeg' ? 'jpeg' : 'png', params: snapshot.params ? { ...snapshot.params } : null, source, references, instruction: snapshot.instruction || '', clientRequestId: snapshot.clientRequestId || meta.clientRequestId || '', serverTaskId: snapshot.serverTaskId || meta.serverTaskId || '' };
     }
     meta.assetIds = [...ids];
     return { meta, assets: [...assets.values()], snapshot };
@@ -574,7 +598,7 @@ function decodeImageBase64(value) {
   return { bytes, mime };
 }
 async function imageBlob(data){let d=findImagePayload(data)||data?.data?.[0]||data?.result?.data?.[0]||data?.output?.[0]||data,encoded=d?.b64_json||d?.b64||d?.partial_image_b64;if(encoded){if(typeof encoded==='string'&&/^https?:\/\//i.test(encoded.trim()))d={...d,url:encoded.trim()};else{let decoded=decodeImageBase64(encoded);return new Blob([decoded.bytes],{type:decoded.mime})}}let url=d?.url||d?.image_url||data?.image_url||data?.url;if(url){let lastError;for(let attempt=0;attempt<2;attempt++){try{let r=await fetch(url);if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.blob()}catch(e){lastError=e;if(!attempt)await new Promise(resolve=>setTimeout(resolve,800))}}let origin="未知图片域名";try{origin=new URL(url).origin}catch{}throw new Error(`图片已在后台生成，但浏览器无法下载返回图片（${origin}）：${lastError?.message||"连接失败"}。可能是图片域名跨域限制或临时链接失效`)}throw new Error("接口已响应，但没有找到图片数据")}
-async function fetchApi(url,options={}){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest();xhr.open(options.method||"GET",url,true);xhr.timeout=0;xhr.responseType="blob";for(let[key,value]of Object.entries(options.headers||{}))xhr.setRequestHeader(key,value);xhr.onload=()=>{let headers=new Headers();for(let line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)){let i=line.indexOf(":");if(i>0)headers.append(line.slice(0,i).trim(),line.slice(i+1).trim())}resolve(new Response(xhr.response,{status:xhr.status,statusText:xhr.statusText,headers}))};xhr.onerror=()=>reject(new Error("生图连接被远端中断（XHR 状态 0）。客户端已设置为永不超时，请核对中转的跨域长连接配置和扣费记录，不要立即重复提交"));xhr.ontimeout=()=>reject(new Error("生图请求发生超时；当前客户端 timeout=0，正常情况下不会主动超时"));xhr.onabort=()=>reject(new Error("生图请求已被中止"));xhr.send(options.body??null)})}
+async function fetchApi(url,options={}){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest();xhr.open(options.method||"GET",url,true);xhr.timeout=0;xhr.responseType="blob";for(let[key,value]of Object.entries(options.headers||{}))xhr.setRequestHeader(key,value);xhr.onload=()=>{let headers=new Headers();for(let line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)){let i=line.indexOf(":");if(i>0)headers.append(line.slice(0,i).trim(),line.slice(i+1).trim())}resolve(new Response(xhr.response,{status:xhr.status,statusText:xhr.statusText,headers}))};xhr.onerror=()=>reject(new Error("生图连接被远端中断（XHR 状态 0）。客户端已设置为永不超时，请稍后核对任务状态和扣费记录，不要立即重复提交"));xhr.ontimeout=()=>reject(new Error("生图请求发生超时；当前客户端 timeout=0，正常情况下不会主动超时"));xhr.onabort=()=>reject(new Error("生图请求已被中止"));xhr.send(options.body??null)})}
 async function submitAsyncImageTask(base, path, bodyFactory, headers, apiKey, clientRequestId) {
   let lastError = null;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -645,7 +669,7 @@ async function pollAsyncImageTask(base, id) {
       continue; // 409（结果未就绪）或 5xx（服务端临时错误）继续轮询
     }
     if (data.status === 'failed') {
-      const suffix = data.upstreamRequestId ? `（上游 Request ID：${data.upstreamRequestId}）` : '';
+      const suffix = data.upstreamRequestId ? `（请求编号：${data.upstreamRequestId}）` : '';
       const error = new Error((data.error || '后台任务失败') + suffix);
       error.confirmed = true;
       throw error;
@@ -680,16 +704,16 @@ function lineArtRequestSize(sourceDimensions) {
 // 把上游英文错误 / 各种来源的报错，归类成固定几类，输出统一中文标题与说明。
 // 只做「提示翻译」，不做自动重试。未知/已有的本地中文错误原样保留。
 function classifyError(raw) {
-  const text = String(raw || '').trim(), lower = text.toLowerCase();
+  const text = String(raw || '').replace(/中转站|中转/g, '服务平台').trim(), lower = text.toLowerCase();
   const has = words => words.some(w => /^\d{3}$/.test(w) ? new RegExp('(?:^|[^0-9])' + w + '(?![0-9])').test(lower) : lower.includes(w));
   // 本地恢复/下载提示包含诊断信息，应保留完整操作建议。
   if (/幂等编号保护|浏览器无法下载返回图片|客户端.*(?:timeout|超时)|请.*核对/.test(text)) return { type: 'unknown', title: '', detail: text };
   const rules = [
-    { type: 'balance', title: '余额不足', detail: '账户余额不足，请到中转站充值后再试', test: () => has(['insufficient balance', 'insufficient_quota', 'insufficient quota', 'insufficient credit', 'insufficient_credit', 'out of credit', 'no credits', 'quota exceeded', 'quota_exceeded', '402', '余额不足']) },
+    { type: 'balance', title: '余额不足', detail: '账户余额不足，请充值后再试', test: () => has(['insufficient balance', 'insufficient_quota', 'insufficient quota', 'insufficient credit', 'insufficient_credit', 'out of credit', 'no credits', 'quota exceeded', 'quota_exceeded', '402', '余额不足']) },
     { type: 'busy', title: '当前排队拥挤', detail: '当前使用人数较多，请稍后重新生成', test: () => has(['rate limit', 'rate_limit', 'too many request', 'rate exceeded', '429', '限流', '拥挤', '排队', '请求过多', '请求次数过多', '并发过高', '满载', '任务过多']) },
-    { type: 'server', title: '服务暂时繁忙', detail: '中转服务暂时不稳定，请稍后重试', test: () => has(['upstream', 'bad gateway', 'gateway', '502', '503', '504', '500', 'overload', 'maintenance', 'timeout', '繁忙', '服务不可用', '内部错误', '服务异常']) },
+    { type: 'server', title: '服务暂时繁忙', detail: '服务暂时不稳定，请稍后重试', test: () => has(['upstream', 'bad gateway', 'gateway', '502', '503', '504', '500', 'overload', 'maintenance', 'timeout', '繁忙', '服务不可用', '内部错误', '服务异常']) },
     { type: 'key', title: '密钥无效', detail: '客户密钥无效或已失效，请重新填写', test: () => has(['invalid api key', 'invalid_api_key', 'unauthorized', 'key not active', '401', '密钥无效', '密钥已失效']) },
-    { type: 'model', title: '模型不可用', detail: '当前模型暂不可用或无访问权限，请更换模型', test: () => has(['model not found', 'model_not_found', 'no permission', 'no_permission', 'permission denied', 'forbidden', '403', '404', '模型不可用', '无权限']) },
+    { type: 'model', title: '生成引擎不可用', detail: '当前生成引擎暂不可用或无访问权限，请切换生成引擎后重试', test: () => has(['model not found', 'model_not_found', 'no permission', 'no_permission', 'permission denied', 'forbidden', '403', '404', '模型不可用', '无权限']) },
     { type: 'content', title: '内容未通过审核', detail: '描述内容未通过审核，请调整后重试', test: () => has(['safety', 'content_policy', 'content policy', 'moderation', '422', '审核', '违规', '敏感', '不安全']) },
   ];
   for (const r of rules) if (r.test()) return { type: r.type, title: r.title, detail: r.detail };
@@ -718,7 +742,7 @@ async function loadCardThumbnail(card) {
     const blob = await GalleryStore.preview(state.assetId);
     if (card.isConnected && state.visible && epoch === state.epoch) ImageURLs.set(state.img, blob);
   } catch (error) {
-    if (card.isConnected && epoch === state.epoch) { state.img.alt = '预览暂不可用，可右键下载原图'; console.warn(error); }
+    if (card.isConnected && epoch === state.epoch) { state.img.alt = mobileActionMode() ? '预览暂不可用，可点击图片保存原图到设备' : '预览暂不可用，可右键下载原图'; console.warn(error); }
   }
 }
 function disposeCard(card) {
@@ -730,6 +754,25 @@ function disposeCard(card) {
 }
 function mobileActionMode() {
   return innerWidth <= 780 || matchMedia('(hover: none), (pointer: coarse)').matches;
+}
+function referenceEmptyText() {
+  return mobileActionMode()
+    ? '可在这里上传，或点击“我的作品”中的图片设为参考图，最多 10 张。'
+    : '可在这里上传，或右键点击“我的作品”中的图片设为参考图，最多 10 张。';
+}
+function updateDeviceCopy() {
+  const stacked = innerWidth <= 780, touch = mobileActionMode();
+  const title = els.gallery.querySelector('.empty h3');
+  const description = els.gallery.querySelector('.empty p');
+  if (title) title.textContent = stacked ? '从上方开始创作' : '从左侧开始创作';
+  if (description) description.textContent = stacked
+    ? '在上方选择画面参数、填写主题内容。生成后点击图片，可预览或保存到设备。'
+    : '在左侧选择画面参数、填写主题内容。生成后可双击预览，右键下载到电脑。';
+  const reference = els.referenceList.querySelector('.reference-empty');
+  if (reference) reference.textContent = referenceEmptyText();
+  document.querySelector('.topbar p').textContent = touch
+    ? '点击图片可预览或保存到设备；本页面只展示最近 50 张。'
+    : '生成的图片会自动下载，也可将本地图片拖入“我的作品”；本页面只展示最近 50 张。';
 }
 function bindCardActions(card, item) {
   card.tabIndex = 0;
@@ -889,6 +932,7 @@ function showEmptyIfNeeded() {
     div.innerHTML = '<div class="empty-inner"><div class="empty-icon">✎</div><h3>从左侧开始创作</h3><p>选择需要的画面参数，填写主题内容，生成后的插画会自动出现在这里并下载到电脑。</p></div></div>';
     els.gallery.append(div);
   }
+  updateDeviceCopy();
 }
 async function renderGallery() {
   const all = await GalleryStore.list(), fragment = document.createDocumentFragment();
@@ -907,7 +951,7 @@ async function deleteImageItem(item) {
     await GalleryStore.remove(item.id);
     const before = visiblePositions(galleryCards.get(String(item.id)));
     removeGalleryRecord(item.id); animatePositions(before); showEmptyIfNeeded();
-    toast(item.kind === 'failed' ? '失败记录已删除' : item.kind === 'pending' ? '本地任务记录已删除；服务器后台任务不会取消' : '图片已从右侧历史删除');
+    toast(item.kind === 'failed' ? '失败记录已删除' : item.kind === 'pending' ? '本地任务记录已删除；服务器后台任务不会取消' : '图片已从“我的作品”删除');
   } catch (error) { toast(error.message || '删除失败'); }
 }
 let highlightedCard = null;
@@ -1013,7 +1057,7 @@ function renderReferenceList() {
   for (const [key, box] of referenceNodes) if (!keys.has(key)) { ImageURLs.release(box.querySelector('img')); box.remove(); referenceNodes.delete(key); }
   els.referenceList.querySelector('.reference-empty')?.remove();
   els.referenceCount.textContent = entries.length ? '已引用 ' + entries.length + ' 张' : '未引用';
-  if (!entries.length) { els.referenceList.innerHTML = '<p class="reference-empty">可在这里上传，或右键引用右侧图片，最多 10 张。</p>'; return; }
+  if (!entries.length) { els.referenceList.innerHTML = '<p class="reference-empty"></p>'; els.referenceList.firstElementChild.textContent = referenceEmptyText(); return; }
   for (const entry of entries) {
     const key = entry.type + ':' + entry.id;
     if (referenceNodes.has(key)) continue;
@@ -1107,7 +1151,8 @@ async function requestTask(task, s, onServerTask = null) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
     return normalizeTaskOutput({ blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId }, outputFormat);
   }
-  const route = (task.route || s.route) === 'line2' ? 'line2' : 'line1';
+  const selectedRoute = task.route || s.route;
+  const route = ['line1', 'line2', 'line3'].includes(selectedRoute) ? selectedRoute : 'line1';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
@@ -1256,6 +1301,14 @@ async function retryFailedTask(item) {
     if (['lineart','edit'].includes(task.type) && !task.source?.assetId) throw new Error('原图缺失，无法重新生成');
     if (task.type === 'edit' && !task.instruction) throw new Error('原修改要求缺失');
     if (['generation','reference'].includes(task.type) && !task.params?.subject) throw new Error('原主题参数缺失');
+    // Failed attempts clear clientRequestId; uncertain submissions retain it for safe recovery.
+    // A new attempt follows the current engine, while recovery keeps the original request intact.
+    if (!task.clientRequestId) {
+      const settings = getSettings();
+      task.route = settings.route;
+      task.adminModel = settings.adminModel || '';
+      delete task.serverTaskId;
+    }
     if (task.type === 'generation') restoreItem({ kind: 'generation', state: task.params, subject: task.params.subject, size: task.params.size });
     await runTask(task, item);
   } catch (error) { toast(error.message); }
@@ -1289,7 +1342,7 @@ async function importDroppedImages(fileList) {
       if (!saved.cached) uncached = saved;
     } catch (error) { lastError = error; console.warn(error); }
   }
-  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : '，点击或右键使用图片功能') : lastError?.message || '图片导入失败，请更换图片后重试');
+  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : (mobileActionMode() ? '，点击图片使用图片功能' : '，右键点击图片使用图片功能')) : lastError?.message || '图片导入失败，请更换图片后重试');
 }
 
 
@@ -1366,7 +1419,51 @@ $('apiKey').addEventListener('input', () => {
   ++adminCheckVersion; clearTimeout(adminCheckTimer); hideAdminControls();
   adminCheckTimer = setTimeout(checkAdminControls, 400);
 });
-function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
+
+function syncEngineButton() {
+  const name = { line1: 'Lite', line2: 'Pro', line3: 'Max' }[getSettings().route] || 'Lite';
+  $('openEngine').textContent = '生成引擎 · ' + name;
+}
+function closeEngineDialog(restoreFocus = true) {
+  const wasOpen = $('engineModal').classList.contains('open');
+  $('engineModal').classList.remove('open');
+  $('openEngine').setAttribute('aria-expanded', 'false');
+  if (wasOpen && restoreFocus) $('openEngine').focus({ preventScroll: true });
+}
+$('openEngine').onclick = () => {
+  $('generationRoute').value = getSettings().route;
+  $('engineModal').classList.add('open');
+  $('openEngine').setAttribute('aria-expanded', 'true');
+  hideHelp(); closeContextMenu();
+  $('generationRoute').focus({ preventScroll: true });
+};
+$('closeEngine').onclick = () => closeEngineDialog();
+$('finishEngine').onclick = () => closeEngineDialog();
+$('engineModal').onclick = e => { if (e.target === $('engineModal')) closeEngineDialog(); };
+document.addEventListener('keydown', e => {
+  if (!$('engineModal').classList.contains('open')) return;
+  if (e.key === 'Escape') { closeEngineDialog(); return; }
+  if (e.key !== 'Tab') return;
+  const controls = [$('closeEngine'), $('generationRoute'), $('finishEngine')];
+  const first = controls[0], last = controls[controls.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement))) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus();
+  }
+});
+
+$('generationRoute').value = getSettings().route;
+syncEngineButton();
+$('generationRoute').addEventListener('change', () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...saved, route: ['line1', 'line2', 'line3'].includes($('generationRoute').value) ? $('generationRoute').value : 'line1' }));
+    syncEngineButton();
+    toast('生成引擎已保存');
+  } catch { toast('引擎选择保存失败，请重试'); }
+});
+function fillSettings() { const s = getSettings(); $('apiKey').value = s.apiKey; $('outputFormat').value = s.outputFormat; $('generationRoute').value = s.route; syncEngineButton(); checkAdminControls(); if (!s.apiKey) setQuotaState('empty', null); }
 function openSettings(tab = 'api') { fillSettings(); renderLogs(); els.modal.classList.add('open'); switchTab(tab); refreshQuota({ silent: true }); }
 function switchTab(name) { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(x => x.classList.toggle('active', x.id === `panel-${name}`)); }
 for (const el of Object.values(els)) if (['INPUT','TEXTAREA','SELECT'].includes(el?.tagName) && el !== els.referenceInput) el.addEventListener('input', updateForm);
@@ -1377,7 +1474,7 @@ $('openSettings').onclick = () => openSettings(); $('closeSettings').onclick = (
 els.modal.onclick = e => { if (e.target === els.modal) els.modal.classList.remove('open'); };
 document.querySelectorAll('.tab').forEach(x => x.onclick = () => switchTab(x.dataset.tab));
 $('toggleKey').onclick = () => { const x = $('apiKey'), show = x.type === 'password'; x.type = show ? 'text' : 'password'; $('toggleKey').textContent = show ? '隐藏' : '显示'; };
-$('clearLogs').onclick = () => { if (confirm('确定清空全部生成记录吗？图片历史不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
+$('clearLogs').onclick = () => { if (confirm('确定清空全部任务记录吗？“我的作品”中的图片不会被删除。')) { localStorage.removeItem(LOG_KEY); renderLogs(); } };
 $('saveSettings').onclick = async () => {
   const apiKey = $('apiKey').value.trim(), button = $('saveSettings');
   button.disabled = true;
@@ -1387,7 +1484,7 @@ $('saveSettings').onclick = async () => {
     if ($('apiKey').value.trim() !== apiKey) return;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey,
       adminModel: admin ? $('adminModel').value : '',
-      route: $('generationRoute').value === 'line2' ? 'line2' : 'line1',
+      route: ['line1', 'line2', 'line3'].includes($('generationRoute').value) ? $('generationRoute').value : 'line1',
       outputFormat: $('outputFormat').value === 'jpeg' ? 'jpeg' : 'png' }));
     fillSettings(); els.modal.classList.remove('open');
     toast(apiKey ? '设置已保存，正在校验额度' : '设置已保存，请填写客户密钥后生成');
@@ -1428,7 +1525,7 @@ document.querySelectorAll('.help').forEach(help => {
   help.addEventListener('focus', () => showHelp(help)); help.addEventListener('blur', hideHelp);
   help.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); $('helpBubble').classList.contains('open') ? hideHelp() : showHelp(help); });
 });
-document.addEventListener('scroll', hideHelp, { capture: true, passive: true }); window.addEventListener('resize', hideHelp);
+document.addEventListener('scroll', hideHelp, { capture: true, passive: true }); window.addEventListener('resize', () => { hideHelp(); updateDeviceCopy(); });
 $('openHelp').onclick = () => $('supportModal').classList.add('open'); $('supportClose').onclick = () => $('supportModal').classList.remove('open');
 $('supportModal').onclick = e => { if (e.target === $('supportModal')) $('supportModal').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { els.modal.classList.remove('open'); closePreview(); closeImageEditor(); closeContextMenu(); $('supportModal').classList.remove('open'); } });
@@ -1443,7 +1540,7 @@ dropArea.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth
 dropArea.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; dropArea.classList.remove('dragging'); importDroppedImages(e.dataTransfer.files).catch(error => toast(error.message)); });
 window.addEventListener('beforeunload', e => { saveParams(); if (activeJobs > 0) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('pagehide', e => { saveParams(); if (!e.persisted) { ImageURLs.clear(); ImageWork.close(); } });
-loadParams(); fillSettings(); renderLogs(); renderThemeHistory();
+loadParams(); fillSettings(); renderLogs(); renderThemeHistory(); updateDeviceCopy();
 galleryReady = renderGallery();
 galleryReady.then(() => resumePendingTasks()).catch(error => toast('图片缓存暂不可用：' + error.message));
 refreshQuota({ silent: true });

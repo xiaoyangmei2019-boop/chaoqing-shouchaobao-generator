@@ -11,7 +11,7 @@ function renderReferenceList() {
   for (const [key, box] of referenceNodes) if (!keys.has(key)) { ImageURLs.release(box.querySelector('img')); box.remove(); referenceNodes.delete(key); }
   els.referenceList.querySelector('.reference-empty')?.remove();
   els.referenceCount.textContent = entries.length ? '已引用 ' + entries.length + ' 张' : '未引用';
-  if (!entries.length) { els.referenceList.innerHTML = '<p class="reference-empty">可在这里上传，或右键引用右侧图片，最多 10 张。</p>'; return; }
+  if (!entries.length) { els.referenceList.innerHTML = '<p class="reference-empty"></p>'; els.referenceList.firstElementChild.textContent = referenceEmptyText(); return; }
   for (const entry of entries) {
     const key = entry.type + ':' + entry.id;
     if (referenceNodes.has(key)) continue;

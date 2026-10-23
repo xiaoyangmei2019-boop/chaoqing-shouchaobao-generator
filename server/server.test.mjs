@@ -20,7 +20,7 @@ const upstream = http.createServer(async (req, res) => {
   let jpegRequested = false;
   if (req.url.includes('/generations')) {
     const json = JSON.parse(requestBody.toString('utf8'));
-    assert(['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst'].includes(json.model), 'only allowed models may be forwarded');
+    assert(['gpt-image-2', 'gpt-image-2-official', 'gpt-image-2.5-sunburst', 'gpt-image-2-svip'].includes(json.model), 'only allowed models may be forwarded');
     forwardedModels.push(json.model);
     jpegRequested = json.output_format === 'jpeg';
     assert.equal(json.output_compression, jpegRequested ? 95 : undefined);
@@ -196,7 +196,7 @@ assert.equal(upstreamPosts, beforeBadType, '未知 task_type 不调用上游');
 
 // JPEG generation and editing preserve the returned bytes and Content-Type.
 const jpgParams = { subject: '测试主题JPG', age: 'grade3_6', person: 'with', titleMode: 'none', smallText: 'none', textBoxes: '0', titleText: '', size: '1:1.4' };
-for (const route of ['line1', 'line2']) for (const mode of ['generation', 'lineart', 'edit', 'reference']) {
+for (const route of ['line1', 'line2', 'line3']) for (const mode of ['generation', 'lineart', 'edit', 'reference']) {
   let body, requestHeaders = { Authorization: `Bearer ${secret}`, 'Idempotency-Key': randomUUID() };
   if (mode === 'generation') {
     requestHeaders['Content-Type'] = 'application/json';
@@ -216,7 +216,7 @@ for (const route of ['line1', 'line2']) for (const mode of ['generation', 'linea
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   assert.equal(status.status, 'succeeded', mode);
-  assert.equal(forwardedModels[forwardedModels.length - 1], mode === 'edit' ? 'gpt-image-2.5-sunburst' : route === 'line2' ? 'gpt-image-2-official' : 'gpt-image-2', route + ':' + mode + ' uses its server-selected model regardless of the frontend model field');
+  assert.equal(forwardedModels[forwardedModels.length - 1], mode === 'edit' ? 'gpt-image-2.5-sunburst' : route === 'line3' ? 'gpt-image-2-official' : route === 'line2' ? 'gpt-image-2-svip' : 'gpt-image-2', route + ':' + mode + ' uses its server-selected model regardless of the frontend model field');
   const result = await fetch(`http://127.0.0.1:${app.server.address().port}${status.resultUrl}`);
   assert.equal(result.headers.get('content-type'), 'image/jpeg');
   assert.deepEqual(await result.buffer(), jpeg);
@@ -303,4 +303,4 @@ await new Promise(resolve => setTimeout(resolve, 300));
 await concurrencyApp.close(); await fsp.rm(concDataDir, { recursive: true, force: true });
 
 await app.close(); await new Promise(resolve => upstream.close(resolve)); await fsp.rm(dataDir, { recursive: true, force: true });
-console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, two-route selection and edit-only Sunburst model routing, administrator authorization and model overrides, and concurrency slot reservation.');
+console.log('Async server tests passed: idempotency, polling result, edit upload, mobile multipart recovery, truncated upload safety, secret non-persistence, size/type/format validation, JPEG generation and editing, three-route selection and edit-only Sunburst model routing, administrator authorization and model overrides, and concurrency slot reservation.');

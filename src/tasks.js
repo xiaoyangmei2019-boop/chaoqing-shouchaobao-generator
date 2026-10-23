@@ -44,7 +44,8 @@ async function requestTask(task, s, onServerTask = null) {
     const result = await pollAsyncImageTask(base, task.serverTaskId);
     return normalizeTaskOutput({ blob: result.blob, points: result.points || s.points, serverTaskId: task.serverTaskId }, outputFormat);
   }
-  const route = (task.route || s.route) === 'line2' ? 'line2' : 'line1';
+  const selectedRoute = task.route || s.route;
+  const route = ['line1', 'line2', 'line3'].includes(selectedRoute) ? selectedRoute : 'line1';
   let asyncPath = '', bodyFactory = null, asyncHeaders = {};
   if (task.type === 'generation') {
     const p = task.params;
@@ -193,6 +194,14 @@ async function retryFailedTask(item) {
     if (['lineart','edit'].includes(task.type) && !task.source?.assetId) throw new Error('原图缺失，无法重新生成');
     if (task.type === 'edit' && !task.instruction) throw new Error('原修改要求缺失');
     if (['generation','reference'].includes(task.type) && !task.params?.subject) throw new Error('原主题参数缺失');
+    // Failed attempts clear clientRequestId; uncertain submissions retain it for safe recovery.
+    // A new attempt follows the current engine, while recovery keeps the original request intact.
+    if (!task.clientRequestId) {
+      const settings = getSettings();
+      task.route = settings.route;
+      task.adminModel = settings.adminModel || '';
+      delete task.serverTaskId;
+    }
     if (task.type === 'generation') restoreItem({ kind: 'generation', state: task.params, subject: task.params.subject, size: task.params.size });
     await runTask(task, item);
   } catch (error) { toast(error.message); }
@@ -226,5 +235,5 @@ async function importDroppedImages(fileList) {
       if (!saved.cached) uncached = saved;
     } catch (error) { lastError = error; console.warn(error); }
   }
-  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : '，点击或右键使用图片功能') : lastError?.message || '图片导入失败，请更换图片后重试');
+  toast(imported ? `已导入${imported}张图片` + (uncached ? '；' + cacheFailureMessage(uncached, '图片') : (mobileActionMode() ? '，点击图片使用图片功能' : '，右键点击图片使用图片功能')) : lastError?.message || '图片导入失败，请更换图片后重试');
 }
